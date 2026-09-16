@@ -915,6 +915,47 @@ function App() {
     savingsRate,
   ]);
 
+  const monthlyComparisonText = useMemo(() => {
+    if (
+      previousTotals.income === 0 &&
+      previousTotals.expense === 0
+    ) {
+      return "Geçen ay ile karşılaştırma yapmak için önceki aya ait veri bulunmuyor.";
+    }
+
+    const expenseText =
+      expenseChange === null
+        ? "gider değişimi hesaplanamıyor"
+        : expenseChange > 0
+        ? `giderlerin %${Math.abs(
+            Math.round(expenseChange)
+          )} arttı`
+        : expenseChange < 0
+        ? `giderlerin %${Math.abs(
+            Math.round(expenseChange)
+          )} azaldı`
+        : "giderlerin değişmedi";
+
+    const incomeText =
+      incomeChange === null
+        ? "gelir değişimi hesaplanamıyor"
+        : incomeChange > 0
+        ? `gelirin %${Math.abs(
+            Math.round(incomeChange)
+          )} arttı`
+        : incomeChange < 0
+        ? `gelirin %${Math.abs(
+            Math.round(incomeChange)
+          )} azaldı`
+        : "gelirin değişmedi";
+
+    return `Geçen aya göre ${expenseText}, ${incomeText}.`;
+  }, [
+    previousTotals,
+    expenseChange,
+    incomeChange,
+  ]);
+
   const financialInsights = useMemo(() => {
     const insights = [];
 
@@ -966,6 +1007,26 @@ function App() {
     }
 
     if (
+      previousTotals.expense > 0 &&
+      expenseChange !== null &&
+      expenseChange !== 0
+    ) {
+      const increased = expenseChange > 0;
+
+      insights.push({
+        title: increased
+          ? "Giderlerin geçen aya göre arttı"
+          : "Giderlerin geçen aya göre azaldı",
+        text: `Bu ay giderlerin geçen aya göre yaklaşık %${Math.abs(
+          Math.round(expenseChange)
+        )} ${
+          increased ? "daha yüksek" : "daha düşük"
+        }.`,
+        type: increased ? "warning" : "success",
+      });
+    }
+
+    if (
       categoryTotals.length > 0
     ) {
       const [
@@ -1003,10 +1064,12 @@ function App() {
     return insights.slice(0, 4);
   }, [
     totals,
+    previousTotals,
     budgetUsage,
     savingsRate,
     categoryTotals,
     currency,
+    expenseChange,
   ]);
 
   const addTransaction = async (e) => {
@@ -1596,6 +1659,16 @@ function App() {
                 }}
               >
                 {dashboardSummary}
+              </p>
+
+              <p
+                style={{
+                  margin: "6px 0 0",
+                  opacity: 0.62,
+                  fontSize: "13px",
+                }}
+              >
+                {monthlyComparisonText}
               </p>
             </section>
 
