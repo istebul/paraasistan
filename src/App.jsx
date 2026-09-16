@@ -353,6 +353,7 @@ function App() {
     saved: "",
     deadline: "",
   });
+
   const [contributionGoal, setContributionGoal] = useState(null);
   const [contributionAmount, setContributionAmount] = useState("");
   const [contributionNote, setContributionNote] = useState("");
@@ -396,6 +397,7 @@ function App() {
   };
 
   const userId = session?.user?.id;
+
   const profileFallbackName =
     session?.user?.user_metadata?.full_name ||
     "";
@@ -460,7 +462,9 @@ function App() {
         supabase
           .from("goal_contributions")
           .select("*")
-          .order("created_at", { ascending: false }),
+          .order("created_at", {
+            ascending: false,
+          }),
 
         supabase
           .from("subscriptions")
@@ -511,7 +515,10 @@ function App() {
       );
 
       setGoals(goalsResult.data || []);
-      setGoalContributions(contributionsResult.data || []);
+
+      setGoalContributions(
+        contributionsResult.data || []
+      );
 
       setSubscriptions(
         subscriptionsResult.data || []
@@ -706,7 +713,9 @@ function App() {
     return months.map((monthKeyValue) => {
       const monthTotals = calculateTotals(
         transactions.filter(
-          (item) => monthKey(item.date) === monthKeyValue
+          (item) =>
+            monthKey(item.date) ===
+            monthKeyValue
         )
       );
 
@@ -763,7 +772,10 @@ function App() {
 
   const exportTransactions = () => {
     if (transactionResults.length === 0) {
-      showToast("Dışa aktarılacak işlem bulunamadı.", "error");
+      showToast(
+        "Dışa aktarılacak işlem bulunamadı.",
+        "error"
+      );
       return;
     }
 
@@ -771,10 +783,18 @@ function App() {
       `"${String(value ?? "").replaceAll('"', '""')}"`;
 
     const rows = [
-      ["Açıklama", "Tür", "Kategori", "Tutar", "Tarih"],
+      [
+        "Açıklama",
+        "Tür",
+        "Kategori",
+        "Tutar",
+        "Tarih",
+      ],
       ...transactionResults.map((transaction) => [
         transaction.title,
-        transaction.type === "income" ? "Gelir" : "Gider",
+        transaction.type === "income"
+          ? "Gelir"
+          : "Gider",
         transaction.category,
         transaction.amount,
         transaction.date,
@@ -782,18 +802,27 @@ function App() {
     ];
 
     const csv = `\uFEFF${rows
-      .map((row) => row.map(escapeCsv).join(";"))
+      .map((row) =>
+        row.map(escapeCsv).join(";")
+      )
       .join("\r\n")}`;
+
     const blob = new Blob([csv], {
       type: "text/csv;charset=utf-8;",
     });
+
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
+
     link.href = url;
     link.download = `paraasistan-islemler-${selectedMonth}.csv`;
     link.click();
+
     URL.revokeObjectURL(url);
-    showToast("İşlemler CSV olarak indirildi.");
+
+    showToast(
+      "İşlemler CSV olarak indirildi."
+    );
   };
 
   const financialHealth = useMemo(() => {
@@ -880,7 +909,10 @@ function App() {
       : "Bu ay giderlerini ve bütçeni özellikle dikkatli takip etmelisin.";
 
   const dashboardSummary = useMemo(() => {
-    if (totals.income === 0 && totals.expense === 0) {
+    if (
+      totals.income === 0 &&
+      totals.expense === 0
+    ) {
       return "Bu ay henüz yeterli finansal veri bulunmuyor.";
     }
 
@@ -915,49 +947,19 @@ function App() {
     savingsRate,
   ]);
 
-  const monthlyComparisonText = useMemo(() => {
-    if (
-      previousTotals.income === 0 &&
-      previousTotals.expense === 0
-    ) {
-      return "Geçen ay ile karşılaştırma yapmak için önceki aya ait veri bulunmuyor.";
-    }
-
-    const expenseText =
-      expenseChange === null
-        ? "gider değişimi hesaplanamıyor"
-        : expenseChange > 0
-        ? `giderlerin %${Math.abs(
-            Math.round(expenseChange)
-          )} arttı`
-        : expenseChange < 0
-        ? `giderlerin %${Math.abs(
-            Math.round(expenseChange)
-          )} azaldı`
-        : "giderlerin değişmedi";
-
-    const incomeText =
-      incomeChange === null
-        ? "gelir değişimi hesaplanamıyor"
-        : incomeChange > 0
-        ? `gelirin %${Math.abs(
-            Math.round(incomeChange)
-          )} arttı`
-        : incomeChange < 0
-        ? `gelirin %${Math.abs(
-            Math.round(incomeChange)
-          )} azaldı`
-        : "gelirin değişmedi";
-
-    return `Geçen aya göre ${expenseText}, ${incomeText}.`;
-  }, [
-    previousTotals,
-    expenseChange,
-    incomeChange,
-  ]);
-
   const financialInsights = useMemo(() => {
     const insights = [];
+
+    if (
+      totals.income === 0 &&
+      totals.expense === 0
+    ) {
+      insights.push({
+        title: "Veri bekleniyor",
+        text: "Bu ay henüz gelir veya gider kaydı bulunmuyor.",
+        type: "info",
+      });
+    }
 
     if (totals.income === 0) {
       insights.push({
@@ -970,39 +972,28 @@ function App() {
     if (totals.balance < 0) {
       insights.push({
         title: "Negatif aylık bakiye",
-        text: "Bu ay giderlerin gelirlerinden yüksek. Öncelikle değişken giderlerini azaltmaya odaklan.",
+        text: `Bu ay giderlerin gelirlerinden ${money(
+          Math.abs(totals.balance),
+          currency
+        )} daha yüksek.`,
         type: "danger",
       });
-    }
-
-    if (budgetUsage > 100) {
-      insights.push({
-        title: "Bütçe aşıldı",
-        text: `Aylık bütçenin %${Math.round(
-          budgetUsage
-        )}'ini kullandın.`,
-        type: "danger",
-      });
-    } else if (budgetUsage > 80) {
-      insights.push({
-        title: "Bütçeye dikkat",
-        text: `Bütçenin %${Math.round(
-          budgetUsage
-        )}'i kullanıldı. Ayın kalan kısmında kontrollü harcama yap.`,
-        type: "warning",
-      });
-    }
-
-    if (
-      savingsRate >= 20 &&
-      totals.income > 0
+    } else if (
+      totals.income > 0 &&
+      totals.expense > 0
     ) {
       insights.push({
-        title: "Güçlü tasarruf",
-        text: `Gelirinin yaklaşık %${Math.round(
-          savingsRate
+        title: "Gelir-gider dengesi",
+        text: `Bu ay ${money(
+          totals.balance,
+          currency
+        )} net bakiyen var. Gelirlerinin yaklaşık %${Math.round(
+          Math.max(savingsRate, 0)
         )}'ini koruyabiliyorsun.`,
-        type: "success",
+        type:
+          savingsRate >= 20
+            ? "success"
+            : "info",
       });
     }
 
@@ -1015,14 +1006,66 @@ function App() {
 
       insights.push({
         title: increased
-          ? "Giderlerin geçen aya göre arttı"
-          : "Giderlerin geçen aya göre azaldı",
-        text: `Bu ay giderlerin geçen aya göre yaklaşık %${Math.abs(
-          Math.round(expenseChange)
+          ? "Giderlerin arttı"
+          : "Giderlerin azaldı",
+        text: `Bu ay giderlerin geçen aya göre yaklaşık %${Math.round(
+          Math.abs(expenseChange)
         )} ${
-          increased ? "daha yüksek" : "daha düşük"
+          increased
+            ? "daha yüksek"
+            : "daha düşük"
         }.`,
-        type: increased ? "warning" : "success",
+        type: increased
+          ? "warning"
+          : "success",
+      });
+    }
+
+    if (budget > 0) {
+      if (budgetUsage > 100) {
+        insights.push({
+          title: "Bütçe aşıldı",
+          text: `Aylık bütçenin %${Math.round(
+            budgetUsage
+          )}'ini kullandın ve ${money(
+            Math.abs(budgetRemaining),
+            currency
+          )} tutarında aşım oluştu.`,
+          type: "danger",
+        });
+      } else if (budgetUsage >= 80) {
+        insights.push({
+          title: "Bütçeye dikkat",
+          text: `Bütçenin %${Math.round(
+            budgetUsage
+          )}'i kullanıldı. Kalan bütçen ${money(
+            Math.max(budgetRemaining, 0),
+            currency
+          )}.`,
+          type: "warning",
+        });
+      } else {
+        insights.push({
+          title: "Bütçende alan var",
+          text: `Bu ay bütçende ${money(
+            Math.max(budgetRemaining, 0),
+            currency
+          )} kullanılabilir alan kaldı.`,
+          type: "success",
+        });
+      }
+    }
+
+    if (
+      savingsRate >= 20 &&
+      totals.income > 0
+    ) {
+      insights.push({
+        title: "Güçlü tasarruf",
+        text: `Gelirinin yaklaşık %${Math.round(
+          savingsRate
+        )}'ini koruyabiliyorsun.`,
+        type: "success",
       });
     }
 
@@ -1065,11 +1108,13 @@ function App() {
   }, [
     totals,
     previousTotals,
+    expenseChange,
+    budget,
+    budgetRemaining,
     budgetUsage,
     savingsRate,
     categoryTotals,
     currency,
-    expenseChange,
   ]);
 
   const addTransaction = async (e) => {
@@ -1078,6 +1123,7 @@ function App() {
     const validationError = validateTransaction(
       transactionForm
     );
+
     if (validationError) {
       showToast(validationError, "error");
       return;
@@ -1149,6 +1195,7 @@ function App() {
     const validationError = validateTransaction(
       editingTransaction
     );
+
     if (validationError) {
       showToast(validationError, "error");
       return;
@@ -1195,7 +1242,11 @@ function App() {
   };
 
   const deleteTransaction = async (id) => {
-    if (!(await requestConfirmation("Bu işlemi silmek istiyor musun?"))) {
+    if (
+      !(await requestConfirmation(
+        "Bu işlemi silmek istiyor musun?"
+      ))
+    ) {
       return;
     }
 
@@ -1220,7 +1271,10 @@ function App() {
   const addGoal = async (e) => {
     e.preventDefault();
 
-    const validationError = validateGoal(goalForm);
+    const validationError = validateGoal(
+      goalForm
+    );
+
     if (validationError) {
       showToast(validationError, "error");
       return;
@@ -1267,7 +1321,11 @@ function App() {
   };
 
   const deleteGoal = async (id) => {
-    if (!(await requestConfirmation("Bu hedefi silmek istiyor musun?"))) {
+    if (
+      !(await requestConfirmation(
+        "Bu hedefi silmek istiyor musun?"
+      ))
+    ) {
       return;
     }
 
@@ -1289,63 +1347,111 @@ function App() {
     );
   };
 
-  const addGoalContribution = async (event) => {
+  const addGoalContribution = async (
+    event
+  ) => {
     event.preventDefault();
+
     if (!contributionGoal) return;
 
-    const amount = Number(contributionAmount);
+    const amount = Number(
+      contributionAmount
+    );
+
     const remaining = Math.max(
-      Number(contributionGoal.target || 0) -
-        Number(contributionGoal.saved || 0),
+      Number(
+        contributionGoal.target || 0
+      ) -
+        Number(
+          contributionGoal.saved || 0
+        ),
       0
     );
 
-    if (!Number.isFinite(amount) || amount <= 0 || amount > remaining) {
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      amount > remaining
+    ) {
       showToast(
         remaining > 0
-          ? `Tutar ${money(remaining, currency)} değerini aşamaz.`
+          ? `Tutar ${money(
+              remaining,
+              currency
+            )} değerini aşamaz.`
           : "Bu hedef tamamlanmış.",
         "error"
       );
       return;
     }
 
-    const { data: contribution, error: contributionError } = await supabase
+    const {
+      data: contribution,
+      error: contributionError,
+    } = await supabase
       .from("goal_contributions")
       .insert({
         goal_id: contributionGoal.id,
         user_id: session.user.id,
         amount,
-        note: contributionNote.trim() || null,
+        note:
+          contributionNote.trim() ||
+          null,
       })
       .select()
       .single();
 
     if (contributionError) {
-      showToast(contributionError.message, "error");
+      showToast(
+        contributionError.message,
+        "error"
+      );
       return;
     }
 
-    setGoalContributions((items) => [contribution, ...items]);
+    setGoalContributions((items) => [
+      contribution,
+      ...items,
+    ]);
 
-    const nextSaved = Number(contributionGoal.saved || 0) + amount;
-    const { data, error } = await supabase
-      .from("goals")
-      .update({ saved: nextSaved })
-      .eq("id", contributionGoal.id)
-      .select()
-      .single();
+    const nextSaved =
+      Number(
+        contributionGoal.saved || 0
+      ) + amount;
+
+    const { data, error } =
+      await supabase
+        .from("goals")
+        .update({
+          saved: nextSaved,
+        })
+        .eq(
+          "id",
+          contributionGoal.id
+        )
+        .select()
+        .single();
 
     if (error) {
       showToast(error.message, "error");
       return;
     }
 
-    setGoals((items) => items.map((item) => (item.id === data.id ? data : item)));
+    setGoals((items) =>
+      items.map((item) =>
+        item.id === data.id
+          ? data
+          : item
+      )
+    );
+
     setContributionGoal(null);
     setContributionAmount("");
     setContributionNote("");
-    showToast("Hedef birikimin güncellendi.");
+
+    showToast(
+      "Hedef birikimin güncellendi."
+    );
   };
 
   const addSubscription = async (
@@ -1353,9 +1459,11 @@ function App() {
   ) => {
     e.preventDefault();
 
-    const validationError = validateSubscription(
-      subscriptionForm
-    );
+    const validationError =
+      validateSubscription(
+        subscriptionForm
+      );
+
     if (validationError) {
       showToast(validationError, "error");
       return;
@@ -1401,8 +1509,14 @@ function App() {
     });
   };
 
-  const deleteSubscription = async (id) => {
-    if (!(await requestConfirmation("Bu aboneliği silmek istiyor musun?"))) {
+  const deleteSubscription = async (
+    id
+  ) => {
+    if (
+      !(await requestConfirmation(
+        "Bu aboneliği silmek istiyor musun?"
+      ))
+    ) {
       return;
     }
 
@@ -1427,7 +1541,9 @@ function App() {
   const saveBudget = async (e) => {
     e.preventDefault();
 
-    const validationError = validateBudget(budgetInput);
+    const validationError =
+      validateBudget(budgetInput);
+
     if (validationError) {
       showToast(validationError, "error");
       return;
@@ -1458,7 +1574,10 @@ function App() {
     }
 
     setBudget(value);
-    showToast("Bütçe başarıyla güncellendi.");
+
+    showToast(
+      "Bütçe başarıyla güncellendi."
+    );
   };
 
   const saveProfile = async (e) => {
@@ -1479,7 +1598,8 @@ function App() {
           profileForm.currency,
         monthly_income_target:
           Number(
-            profileForm.monthly_income_target ||
+            profileForm
+              .monthly_income_target ||
               0
           ),
         updated_at:
@@ -1504,7 +1624,9 @@ function App() {
         },
       });
 
-      showToast("Profil bilgilerin kaydedildi.");
+      showToast(
+        "Profil bilgilerin kaydedildi."
+      );
     } catch (error) {
       console.error(error);
 
@@ -1547,9 +1669,11 @@ function App() {
       }
 
       const answer =
-        data?.answer || "AI cevap üretemedi.";
+        data?.answer ||
+        "AI cevap üretemedi.";
 
       setCoachAnswer(answer);
+
       setCoachHistory((history) => [
         {
           id: `${Date.now()}-${history.length}`,
@@ -1660,16 +1784,6 @@ function App() {
               >
                 {dashboardSummary}
               </p>
-
-              <p
-                style={{
-                  margin: "6px 0 0",
-                  opacity: 0.62,
-                  fontSize: "13px",
-                }}
-              >
-                {monthlyComparisonText}
-              </p>
             </section>
 
             <DashboardStats
@@ -1695,7 +1809,9 @@ function App() {
               />
 
               <DashboardBudgetCard
-                month={monthLabel(selectedMonth)}
+                month={monthLabel(
+                  selectedMonth
+                )}
                 usage={budgetUsage}
                 remaining={budgetRemaining}
                 currency={currency}
@@ -1710,12 +1826,20 @@ function App() {
               }}
             >
               <DashboardSpendingCard
-                month={monthLabel(selectedMonth)}
-                categoryTotals={categoryTotals}
-                expenseTotal={totals.expense}
+                month={monthLabel(
+                  selectedMonth
+                )}
+                categoryTotals={
+                  categoryTotals
+                }
+                expenseTotal={
+                  totals.expense
+                }
                 currency={currency}
                 money={money}
-                onExport={exportTransactions}
+                onExport={
+                  exportTransactions
+                }
               />
 
               <div className="panel">
@@ -1760,6 +1884,7 @@ function App() {
                             margin:
                               "5px 0 0",
                             opacity: 0.75,
+                            lineHeight: 1.5,
                           }}
                         >
                           {item.text}
@@ -1781,7 +1906,9 @@ function App() {
                 goals={goals}
                 currency={currency}
                 money={money}
-                onOpenGoals={() => navigate("goals")}
+                onOpenGoals={() =>
+                  navigate("goals")
+                }
               />
 
               <DashboardSubscriptionsCard
@@ -1789,17 +1916,23 @@ function App() {
                 currency={currency}
                 money={money}
                 onOpenSubscriptions={() =>
-                  navigate("subscriptions")
+                  navigate(
+                    "subscriptions"
+                  )
                 }
               />
             </section>
 
             <RecentTransactionsCard
-              transactions={selectedMonthTransactions}
+              transactions={
+                selectedMonthTransactions
+              }
               currency={currency}
               money={money}
               dateText={dateText}
-              onOpenTransactions={() => navigate("transactions")}
+              onOpenTransactions={() =>
+                navigate("transactions")
+              }
             />
           </>
         )}
@@ -1821,16 +1954,30 @@ function App() {
               categories={CATEGORY_OPTIONS}
               search={transactionSearch}
               type={transactionTypeFilter}
-              category={transactionCategoryFilter}
+              category={
+                transactionCategoryFilter
+              }
               currency={currency}
               money={money}
               dateText={dateText}
-              onSearchChange={setTransactionSearch}
-              onTypeChange={setTransactionTypeFilter}
-              onCategoryChange={setTransactionCategoryFilter}
-              onExport={exportTransactions}
-              onEdit={startEditTransaction}
-              onDelete={deleteTransaction}
+              onSearchChange={
+                setTransactionSearch
+              }
+              onTypeChange={
+                setTransactionTypeFilter
+              }
+              onCategoryChange={
+                setTransactionCategoryFilter
+              }
+              onExport={
+                exportTransactions
+              }
+              onEdit={
+                startEditTransaction
+              }
+              onDelete={
+                deleteTransaction
+              }
             />
           </>
         )}
@@ -1847,24 +1994,33 @@ function App() {
 
             <GoalList
               goals={goals}
-              contributions={goalContributions}
+              contributions={
+                goalContributions
+              }
               currency={currency}
               money={money}
               dateText={dateText}
               daysUntil={daysUntil}
               onDelete={deleteGoal}
               onContribute={(goal) => {
-                setContributionGoal(goal);
-                setContributionAmount("");
-                setContributionNote("");
+                setContributionGoal(
+                  goal
+                );
+                setContributionAmount(
+                  ""
+                );
+                setContributionNote(
+                  ""
+                );
               }}
             />
           </section>
         )}
 
-        {/* SUBSCRIPTIONS */}
+        {/* LEGACY SUBSCRIPTIONS */}
 
-        {page === "__legacy_subscriptions__" && (
+        {page ===
+          "__legacy_subscriptions__" && (
           <section className="content-grid">
             {/* Legacy goal markup removed during component extraction. */}
           </section>
@@ -1876,15 +2032,22 @@ function App() {
           <section className="content-grid">
             <SubscriptionForm
               form={subscriptionForm}
-              onChange={setSubscriptionForm}
-              onSubmit={addSubscription}
+              onChange={
+                setSubscriptionForm
+              }
+              onSubmit={
+                addSubscription
+              }
             />
+
             <SubscriptionList
               items={subscriptions}
               total={subscriptionTotal}
               currency={currency}
               money={money}
-              onDelete={deleteSubscription}
+              onDelete={
+                deleteSubscription
+              }
             />
           </section>
         )}
@@ -1934,8 +2097,7 @@ function App() {
               </div>
 
               <p>
-                {budgetRemaining >=
-                0
+                {budgetRemaining >= 0
                   ? "Kalan bütçe: "
                   : "Bütçe aşımı: "}
 
@@ -1963,7 +2125,9 @@ function App() {
                       : "positive"
                   }
                 >
-                  %{Math.round(budgetUsage)}{" "}
+                  %{Math.round(
+                    budgetUsage
+                  )}{" "}
                   {budgetUsage > 100
                     ? "bütçe aşıldı"
                     : budgetUsage >= 80
@@ -1995,9 +2159,7 @@ function App() {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={
-                    budgetInput
-                  }
+                  value={budgetInput}
                   onChange={(e) =>
                     setBudgetInput(
                       e.target.value
@@ -2032,9 +2194,7 @@ function App() {
                 }}
               >
                 <div>
-                  <span>
-                    Bütçe
-                  </span>
+                  <span>Bütçe</span>
 
                   <strong>
                     {money(
@@ -2045,9 +2205,7 @@ function App() {
                 </div>
 
                 <div>
-                  <span>
-                    Harcanan
-                  </span>
+                  <span>Harcanan</span>
 
                   <strong>
                     {money(
@@ -2058,9 +2216,7 @@ function App() {
                 </div>
 
                 <div>
-                  <span>
-                    Kalan
-                  </span>
+                  <span>Kalan</span>
 
                   <strong
                     className={
@@ -2078,9 +2234,7 @@ function App() {
                 </div>
 
                 <div>
-                  <span>
-                    Kullanım
-                  </span>
+                  <span>Kullanım</span>
 
                   <strong>
                     %
@@ -2195,9 +2349,7 @@ function App() {
 
                 <div className="coach-stats">
                   <div>
-                    <span>
-                      Gelir
-                    </span>
+                    <span>Gelir</span>
 
                     <strong>
                       {money(
@@ -2208,9 +2360,7 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Gider
-                    </span>
+                    <span>Gider</span>
 
                     <strong>
                       {money(
@@ -2221,9 +2371,7 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Tasarruf
-                    </span>
+                    <span>Tasarruf</span>
 
                     <strong>
                       {money(
@@ -2234,9 +2382,7 @@ function App() {
                   </div>
 
                   <div>
-                    <span>
-                      Oran
-                    </span>
+                    <span>Oran</span>
 
                     <strong>
                       {Math.round(
@@ -2322,71 +2468,114 @@ function App() {
             <section className="panel trend-panel">
               <div className="panel-header">
                 <div>
-                  <h2>Altı Aylık Trend</h2>
-                  <p>Gelir, gider ve net durumunun değişimi</p>
+                  <h2>
+                    Altı Aylık Trend
+                  </h2>
+
+                  <p>
+                    Gelir, gider ve net durumunun değişimi
+                  </p>
                 </div>
               </div>
 
               <div className="trend-list">
-                {monthlyTrend.map((item) => {
-                  const maximum = Math.max(
-                    item.income,
-                    item.expense,
-                    1
-                  );
+                {monthlyTrend.map(
+                  (item) => {
+                    const maximum =
+                      Math.max(
+                        item.income,
+                        item.expense,
+                        1
+                      );
 
-                  return (
-                    <div className="trend-row" key={item.month}>
-                      <div className="trend-label">
-                        <strong>{item.label}</strong>
-                        <span
-                          className={
-                            item.balance >= 0
-                              ? "positive"
-                              : "negative"
-                          }
-                        >
-                          {money(item.balance, currency)}
-                        </span>
-                      </div>
+                    return (
+                      <div
+                        className="trend-row"
+                        key={item.month}
+                      >
+                        <div className="trend-label">
+                          <strong>
+                            {
+                              item.label
+                            }
+                          </strong>
 
-                      <div className="trend-bars">
-                        <div className="trend-bar-track">
                           <span
-                            className="trend-bar income-bar"
-                            style={{
-                              width: `${Math.max(
-                                2,
-                                (item.income / maximum) * 100
-                              )}%`,
-                            }}
-                          />
+                            className={
+                              item.balance >=
+                              0
+                                ? "positive"
+                                : "negative"
+                            }
+                          >
+                            {money(
+                              item.balance,
+                              currency
+                            )}
+                          </span>
                         </div>
-                        <div className="trend-bar-track">
-                          <span
-                            className="trend-bar expense-bar"
-                            style={{
-                              width: `${Math.max(
-                                2,
-                                (item.expense / maximum) * 100
-                              )}%`,
-                            }}
-                          />
-                        </div>
-                      </div>
 
-                      <div className="trend-values">
-                        <span>{money(item.income, currency)}</span>
-                        <span>{money(item.expense, currency)}</span>
+                        <div className="trend-bars">
+                          <div className="trend-bar-track">
+                            <span
+                              className="trend-bar income-bar"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  (item.income /
+                                    maximum) *
+                                    100
+                                )}%`,
+                              }}
+                            />
+                          </div>
+
+                          <div className="trend-bar-track">
+                            <span
+                              className="trend-bar expense-bar"
+                              style={{
+                                width: `${Math.max(
+                                  2,
+                                  (item.expense /
+                                    maximum) *
+                                    100
+                                )}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="trend-values">
+                          <span>
+                            {money(
+                              item.income,
+                              currency
+                            )}
+                          </span>
+
+                          <span>
+                            {money(
+                              item.expense,
+                              currency
+                            )}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  }
+                )}
               </div>
 
               <div className="trend-legend">
-                <span><i className="income-dot" /> Gelir</span>
-                <span><i className="expense-dot" /> Gider</span>
+                <span>
+                  <i className="income-dot" />{" "}
+                  Gelir
+                </span>
+
+                <span>
+                  <i className="expense-dot" />{" "}
+                  Gider
+                </span>
               </div>
             </section>
 
@@ -2626,20 +2815,33 @@ function App() {
 
               {coachHistory.length > 1 && (
                 <details className="coach-history">
-                  <summary>Son koç görüşmeleri</summary>
+                  <summary>
+                    Son koç görüşmeleri
+                  </summary>
+
                   <div className="coach-history-list">
-                    {coachHistory.slice(1).map((item) => (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => {
-                          setCoachQuestion(item.question);
-                          setCoachAnswer(item.answer);
-                        }}
-                      >
-                        {item.question}
-                      </button>
-                    ))}
+                    {coachHistory
+                      .slice(1)
+                      .map((item) => (
+                        <button
+                          type="button"
+                          key={
+                            item.id
+                          }
+                          onClick={() => {
+                            setCoachQuestion(
+                              item.question
+                            );
+                            setCoachAnswer(
+                              item.answer
+                            );
+                          }}
+                        >
+                          {
+                            item.question
+                          }
+                        </button>
+                      ))}
                   </div>
                 </details>
               )}
@@ -2647,9 +2849,7 @@ function App() {
 
             <div className="coach-stats">
               <div>
-                <span>
-                  Gelir
-                </span>
+                <span>Gelir</span>
 
                 <strong>
                   {money(
@@ -2660,9 +2860,7 @@ function App() {
               </div>
 
               <div>
-                <span>
-                  Gider
-                </span>
+                <span>Gider</span>
 
                 <strong>
                   {money(
@@ -2673,9 +2871,7 @@ function App() {
               </div>
 
               <div>
-                <span>
-                  Bakiye
-                </span>
+                <span>Bakiye</span>
 
                 <strong>
                   {money(
@@ -2686,9 +2882,7 @@ function App() {
               </div>
 
               <div>
-                <span>
-                  Abonelik
-                </span>
+                <span>Abonelik</span>
 
                 <strong>
                   {money(
@@ -3128,12 +3322,24 @@ function App() {
         {/* EDIT TRANSACTION MODAL */}
 
         <EditTransactionModal
-          transaction={editingTransaction}
-          categories={CATEGORY_OPTIONS}
-          onChange={setEditingTransaction}
-          onSubmit={updateTransaction}
-          onClose={cancelEditTransaction}
+          transaction={
+            editingTransaction
+          }
+          categories={
+            CATEGORY_OPTIONS
+          }
+          onChange={
+            setEditingTransaction
+          }
+          onSubmit={
+            updateTransaction
+          }
+          onClose={
+            cancelEditTransaction
+          }
         />
+
+        {/* GOAL CONTRIBUTION MODAL */}
 
         <GoalContributionModal
           goal={contributionGoal}
@@ -3141,10 +3347,18 @@ function App() {
           note={contributionNote}
           currency={currency}
           money={money}
-          onAmountChange={setContributionAmount}
-          onNoteChange={setContributionNote}
-          onSubmit={addGoalContribution}
-          onClose={() => setContributionGoal(null)}
+          onAmountChange={
+            setContributionAmount
+          }
+          onNoteChange={
+            setContributionNote
+          }
+          onSubmit={
+            addGoalContribution
+          }
+          onClose={() =>
+            setContributionGoal(null)
+          }
         />
       </main>
     </div>
