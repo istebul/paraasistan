@@ -191,103 +191,103 @@ function AuthScreen() {
         </section>
 
         <div className="auth-card">
-        <div className="brand-large">
-          <div className="brand-icon">₺</div>
+          <div className="brand-large">
+            <div className="brand-icon">₺</div>
 
-          <div>
-            <h1>ParaAsistan</h1>
-            <p>
-              Finansal hayatının akıllı yardımcısı
-            </p>
+            <div>
+              <h1>ParaAsistan</h1>
+              <p>
+                Finansal hayatının akıllı yardımcısı
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="auth-tabs">
-          <button
-            className={
-              mode === "login" ? "active" : ""
-            }
-            onClick={() => {
-              setMode("login");
-              setMessage("");
-            }}
-          >
-            Giriş Yap
-          </button>
+          <div className="auth-tabs">
+            <button
+              className={
+                mode === "login" ? "active" : ""
+              }
+              onClick={() => {
+                setMode("login");
+                setMessage("");
+              }}
+            >
+              Giriş Yap
+            </button>
 
-          <button
-            className={
-              mode === "register" ? "active" : ""
-            }
-            onClick={() => {
-              setMode("register");
-              setMessage("");
-            }}
-          >
-            Kayıt Ol
-          </button>
-        </div>
+            <button
+              className={
+                mode === "register" ? "active" : ""
+              }
+              onClick={() => {
+                setMode("register");
+                setMessage("");
+              }}
+            >
+              Kayıt Ol
+            </button>
+          </div>
 
-        <form onSubmit={submit}>
-          {mode === "register" && (
+          <form onSubmit={submit}>
+            {mode === "register" && (
+              <label>
+                Ad Soyad
+
+                <input
+                  value={fullName}
+                  onChange={(e) =>
+                    setFullName(e.target.value)
+                  }
+                  placeholder="Adınız Soyadınız"
+                  required
+                />
+              </label>
+            )}
+
             <label>
-              Ad Soyad
+              E-posta
 
               <input
-                value={fullName}
+                type="email"
+                value={email}
                 onChange={(e) =>
-                  setFullName(e.target.value)
+                  setEmail(e.target.value)
                 }
-                placeholder="Adınız Soyadınız"
+                placeholder="ornek@mail.com"
                 required
               />
             </label>
-          )}
 
-          <label>
-            E-posta
+            <label>
+              Şifre
 
-            <input
-              type="email"
-              value={email}
-              onChange={(e) =>
-                setEmail(e.target.value)
-              }
-              placeholder="ornek@mail.com"
-              required
-            />
-          </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) =>
+                  setPassword(e.target.value)
+                }
+                placeholder="En az 6 karakter"
+                minLength={6}
+                required
+              />
+            </label>
 
-          <label>
-            Şifre
+            {message && (
+              <div className="notice">{message}</div>
+            )}
 
-            <input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(e.target.value)
-              }
-              placeholder="En az 6 karakter"
-              minLength={6}
-              required
-            />
-          </label>
-
-          {message && (
-            <div className="notice">{message}</div>
-          )}
-
-          <button
-            className="primary-button"
-            disabled={loading}
-          >
-            {loading
-              ? "İşleniyor..."
-              : mode === "login"
-              ? "Giriş Yap"
-              : "Hesap Oluştur"}
-          </button>
-        </form>
+            <button
+              className="primary-button"
+              disabled={loading}
+            >
+              {loading
+                ? "İşleniyor..."
+                : mode === "login"
+                ? "Giriş Yap"
+                : "Hesap Oluştur"}
+            </button>
+          </form>
         </div>
       </div>
     </div>
@@ -724,30 +724,30 @@ function App() {
 
     return transactions
       .filter((item) => {
-      const matchesSearch =
-        !search ||
-        item.title
-          ?.toLowerCase()
-          .includes(search) ||
-        item.category
-          ?.toLowerCase()
-          .includes(search);
+        const matchesSearch =
+          !search ||
+          item.title
+            ?.toLowerCase()
+            .includes(search) ||
+          item.category
+            ?.toLowerCase()
+            .includes(search);
 
-      const matchesType =
-        transactionTypeFilter === "all" ||
-        item.type === transactionTypeFilter;
+        const matchesType =
+          transactionTypeFilter === "all" ||
+          item.type === transactionTypeFilter;
 
-      const matchesCategory =
-        transactionCategoryFilter ===
-          "all" ||
-        item.category ===
-          transactionCategoryFilter;
+        const matchesCategory =
+          transactionCategoryFilter ===
+            "all" ||
+          item.category ===
+            transactionCategoryFilter;
 
-      return (
-        matchesSearch &&
-        matchesType &&
-        matchesCategory
-      );
+        return (
+          matchesSearch &&
+          matchesType &&
+          matchesCategory
+        );
       })
       .sort(
         (a, b) =>
@@ -878,6 +878,42 @@ function App() {
       : financialHealth >= 50
       ? "Finansal durumunu biraz daha yakından takip etmen faydalı olabilir."
       : "Bu ay giderlerini ve bütçeni özellikle dikkatli takip etmelisin.";
+
+  const dashboardSummary = useMemo(() => {
+    if (totals.income === 0 && totals.expense === 0) {
+      return "Bu ay henüz yeterli finansal veri bulunmuyor.";
+    }
+
+    if (totals.balance < 0) {
+      return `Bu ay ${money(
+        Math.abs(totals.balance),
+        currency
+      )} açık durumdasın. Giderlerini yakından takip etmen faydalı olabilir.`;
+    }
+
+    if (budget > 0 && budgetUsage >= 90) {
+      return `Bu ay bütçenin %${Math.round(
+        budgetUsage
+      )}'ini kullandın. Ayın kalanında harcamalarını kontrollü tutman önemli.`;
+    }
+
+    if (savingsRate >= 20) {
+      return `Bu ay gelirinin yaklaşık %${Math.round(
+        savingsRate
+      )}'ini koruyabiliyorsun. Tasarruf tarafında güçlü bir tablo oluşuyor.`;
+    }
+
+    return `Bu ay ${money(
+      totals.balance,
+      currency
+    )} net bakiyen var. Harcama ve bütçe dengesini takip etmeye devam edebilirsin.`;
+  }, [
+    totals,
+    currency,
+    budget,
+    budgetUsage,
+    savingsRate,
+  ]);
 
   const financialInsights = useMemo(() => {
     const insights = [];
@@ -1218,7 +1254,9 @@ function App() {
         user_id: session.user.id,
         amount,
         note: contributionNote.trim() || null,
-      });
+      })
+      .select()
+      .single();
 
     if (contributionError) {
       showToast(contributionError.message, "error");
@@ -1549,6 +1587,16 @@ function App() {
               >
                 finansal özeti
               </span>
+
+              <p
+                style={{
+                  margin: "8px 0 0",
+                  opacity: 0.78,
+                  lineHeight: 1.5,
+                }}
+              >
+                {dashboardSummary}
+              </p>
             </section>
 
             <DashboardStats
@@ -1746,237 +1794,6 @@ function App() {
         {page === "__legacy_subscriptions__" && (
           <section className="content-grid">
             {/* Legacy goal markup removed during component extraction. */}
-            {/*
-                <label>
-                  Hedef adı
-
-                  <input
-                    value={
-                      goalForm.title
-                    }
-                    onChange={(e) =>
-                      setGoalForm({
-                        ...goalForm,
-                        title:
-                          e.target
-                            .value,
-                      })
-                    }
-                    placeholder="Örn. Acil durum fonu"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Hedef tutar
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={
-                      goalForm.target
-                    }
-                    onChange={(e) =>
-                      setGoalForm({
-                        ...goalForm,
-                        target:
-                          e.target
-                            .value,
-                      })
-                    }
-                    required
-                  />
-                </label>
-
-                <label>
-                  Biriken tutar
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={
-                      goalForm.saved
-                    }
-                    onChange={(e) =>
-                      setGoalForm({
-                        ...goalForm,
-                        saved:
-                          e.target
-                            .value,
-                      })
-                    }
-                  />
-                </label>
-
-                <label>
-                  Son tarih
-
-                  <input
-                    type="date"
-                    value={
-                      goalForm.deadline
-                    }
-                    onChange={(e) =>
-                      setGoalForm({
-                        ...goalForm,
-                        deadline:
-                          e.target
-                            .value,
-                      })
-                    }
-                  />
-                </label>
-
-                <button className="primary-button">
-                  Hedef Ekle
-                </button>
-              </form>
-            </div>
-
-            <div className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2>
-                    Hedeflerim
-                  </h2>
-
-                  <p>
-                    Finansal hedeflerini
-                    takip et
-                  </p>
-                </div>
-              </div>
-
-              {goals.length === 0 ? (
-                <div className="empty-state">
-                  Henüz hedef
-                  eklenmemiş.
-                </div>
-              ) : (
-                <div className="goal-list">
-                  {goals.map(
-                    (goal) => {
-                      const target =
-                        Number(
-                          goal.target
-                        ) || 0;
-
-                      const saved =
-                        Number(
-                          goal.saved
-                        ) || 0;
-
-                      const progress =
-                        target > 0
-                          ? Math.min(
-                              100,
-                              (saved /
-                                target) *
-                                100
-                            )
-                          : 0;
-
-                      const remaining =
-                        Math.max(
-                          target -
-                            saved,
-                          0
-                        );
-
-                      const days =
-                        daysUntil(
-                          goal.deadline
-                        );
-
-                      return (
-                        <div
-                          className="goal-card"
-                          key={
-                            goal.id
-                          }
-                        >
-                          <div className="goal-top">
-                            <div>
-                              <strong>
-                                {
-                                  goal.title
-                                }
-                              </strong>
-
-                              <span>
-                                {money(
-                                  saved,
-                                  currency
-                                )}{" "}
-                                /{" "}
-                                {money(
-                                  target,
-                                  currency
-                                )}
-                              </span>
-                            </div>
-
-                            <button
-                              className="delete-button"
-                              onClick={() =>
-                                deleteGoal(
-                                  goal.id
-                                )
-                              }
-                            >
-                              Sil
-                            </button>
-                          </div>
-
-                          <div className="progress large">
-                            <div
-                              style={{
-                                width: `${progress}%`,
-                              }}
-                            />
-                          </div>
-
-                          <div className="goal-bottom">
-                            <span>
-                              %
-                              {Math.round(
-                                progress
-                              )}{" "}
-                              tamamlandı
-                            </span>
-
-                            <span>
-                              Kalan:{" "}
-                              {money(
-                                remaining,
-                                currency
-                              )}
-                            </span>
-
-                            <span>
-                              {goal.deadline
-                                ? days !==
-                                  null
-                                  ? days <
-                                    0
-                                    ? "Süre geçti"
-                                    : `${days} gün kaldı`
-                                  : dateText(
-                                      goal.deadline
-                                    )
-                                : "Son tarih yok"}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    }
-                  )}
-                </div>
-              )}
-            </div>
-            */}
           </section>
         )}
 
@@ -1996,178 +1813,6 @@ function App() {
               money={money}
               onDelete={deleteSubscription}
             />
-            {/* Legacy subscription markup retained below only as migration reference. */}
-            {/*
-            <div className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2>
-                    Yeni Abonelik
-                  </h2>
-
-                  <p>
-                    Düzenli ödemelerini
-                    takip et
-                  </p>
-                </div>
-              </div>
-
-              <form
-                onSubmit={
-                  addSubscription
-                }
-                className="form-grid"
-              >
-                <label>
-                  Abonelik adı
-
-                  <input
-                    value={
-                      subscriptionForm.title
-                    }
-                    onChange={(e) =>
-                      setSubscriptionForm(
-                        {
-                          ...subscriptionForm,
-                          title:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    placeholder="Örn. İnternet"
-                    required
-                  />
-                </label>
-
-                <label>
-                  Aylık tutar
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={
-                      subscriptionForm.amount
-                    }
-                    onChange={(e) =>
-                      setSubscriptionForm(
-                        {
-                          ...subscriptionForm,
-                          amount:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    required
-                  />
-                </label>
-
-                <label>
-                  Ödeme günü
-
-                  <input
-                    type="number"
-                    min="1"
-                    max="31"
-                    value={
-                      subscriptionForm.day
-                    }
-                    onChange={(e) =>
-                      setSubscriptionForm(
-                        {
-                          ...subscriptionForm,
-                          day:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    required
-                  />
-                </label>
-
-                <button className="primary-button">
-                  Abonelik Ekle
-                </button>
-              </form>
-            </div>
-
-            <div className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2>
-                    Abonelikler
-                  </h2>
-
-                  <p>
-                    Aylık toplam:{" "}
-                    {money(
-                      subscriptionTotal,
-                      currency
-                    )}
-                  </p>
-                </div>
-              </div>
-
-              {subscriptions.length ===
-              0 ? (
-                <div className="empty-state">
-                  Henüz abonelik yok.
-                </div>
-              ) : (
-                <div className="subscription-list">
-                  {subscriptions.map(
-                    (item) => (
-                      <div
-                        className="subscription-card"
-                        key={
-                          item.id
-                        }
-                      >
-                        <div>
-                          <strong>
-                            {
-                              item.title
-                            }
-                          </strong>
-
-                          <span>
-                            Her ayın{" "}
-                            {
-                              item.day
-                            }
-                            . günü
-                          </span>
-                        </div>
-
-                        <div className="subscription-right">
-                          <strong>
-                            {money(
-                              item.amount,
-                              currency
-                            )}
-                          </strong>
-
-                          <button
-                            className="delete-button"
-                            onClick={() =>
-                              deleteSubscription(
-                                item.id
-                              )
-                            }
-                          >
-                            Sil
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  )}
-                </div>
-              )}
-            </div>
-            */}
           </section>
         )}
 
@@ -3428,167 +3073,6 @@ function App() {
           onSubmit={addGoalContribution}
           onClose={() => setContributionGoal(null)}
         />
-        {/*
-          <div>
-            <div>
-                <label>
-                  Açıklama
-
-                  <input
-                    value={
-                      editingTransaction.title ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction(
-                        {
-                          ...editingTransaction,
-                          title:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    required
-                  />
-                </label>
-
-                <label>
-                  Tür
-
-                  <select
-                    value={
-                      editingTransaction.type
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction(
-                        {
-                          ...editingTransaction,
-                          type:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                  >
-                    <option value="expense">
-                      Gider
-                    </option>
-
-                    <option value="income">
-                      Gelir
-                    </option>
-                  </select>
-                </label>
-
-                <label>
-                  Kategori
-
-                  <select
-                    value={
-                      editingTransaction.category
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction(
-                        {
-                          ...editingTransaction,
-                          category:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                  >
-                    {CATEGORY_OPTIONS.map(
-                      (category) => (
-                        <option
-                          key={
-                            category
-                          }
-                        >
-                          {category}
-                        </option>
-                      )
-                    )}
-                  </select>
-                </label>
-
-                <label>
-                  Tutar
-
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={
-                      editingTransaction.amount ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction(
-                        {
-                          ...editingTransaction,
-                          amount:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    required
-                  />
-                </label>
-
-                <label>
-                  Tarih
-
-                  <input
-                    type="date"
-                    value={
-                      editingTransaction.date ||
-                      ""
-                    }
-                    onChange={(e) =>
-                      setEditingTransaction(
-                        {
-                          ...editingTransaction,
-                          date:
-                            e.target
-                              .value,
-                        }
-                      )
-                    }
-                    required
-                  />
-                </label>
-
-                <div
-                  style={{
-                    display:
-                      "flex",
-                    gap: "10px",
-                  }}
-                >
-                  <button
-                    type="submit"
-                    className="primary-button"
-                  >
-                    Değişiklikleri Kaydet
-                  </button>
-
-                  <button
-                    type="button"
-                    className="secondary-button"
-                    onClick={
-                      cancelEditTransaction
-                    }
-                  >
-                    Vazgeç
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        */}
       </main>
     </div>
   );
