@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 const navigationItems = [
   ["dashboard", "⌂", "Genel Bakış"],
   ["transactions", "↕", "İşlemler"],
@@ -18,8 +20,25 @@ export default function AppNavigation({
   onNavigate,
   onLogout,
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleNavigate = (key) => {
+    onNavigate(key);
+    setMenuOpen(false);
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${menuOpen ? "mobile-open" : ""}`}>
+      <button
+        type="button"
+        className="mobile-menu-button"
+        aria-label="Menüyü aç veya kapat"
+        aria-expanded={menuOpen}
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        ☰
+      </button>
+
       <div className="brand">
         <div className="brand-icon">₺</div>
         <div>
@@ -37,7 +56,7 @@ export default function AppNavigation({
               key === "coach" ? "ai-nav" : ""
             }`}
             aria-current={page === key ? "page" : undefined}
-            onClick={() => onNavigate(key)}
+            onClick={() => handleNavigate(key)}
           >
             <span>{icon}</span>
             {key === "premium" && isPremium ? "Premium" : label}
@@ -50,7 +69,9 @@ export default function AppNavigation({
 
       <div className="sidebar-bottom">
         <div className="user-box">
-          <div className="avatar">{userName.charAt(0).toUpperCase()}</div>
+          <div className="avatar">
+            {userName.charAt(0).toUpperCase()}
+          </div>
           <div>
             <strong>{userName}</strong>
             <span>{isPremium ? "Premium üye" : email}</span>

@@ -2545,3 +2545,40 @@ textarea:focus-visible {
     flex: 1;
   }
 }
+
+.mobile-menu-button {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  .mobile-menu-button {
+    display: flex;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 10001;
+    width: 42px;
+    height: 42px;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--text);
+    background: rgba(23, 35, 51, 0.96);
+    cursor: pointer;
+    font-size: 22px;
+  }
+
+  .sidebar:not(.mobile-open) {
+    transform: translateX(-100%);
+  }
+
+  .sidebar.mobile-open {
+    transform: translateX(0);
+    z-index: 10000;
+  }
+
+  .sidebar {
+    transition: transform 0.25s ease;
+  }
+}
