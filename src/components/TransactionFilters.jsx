@@ -11,14 +11,19 @@ export default function TransactionFilters({
     <div className="transaction-filters">
       <input
         value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
+        onChange={(event) =>
+          onSearchChange(event.target.value)
+        }
         placeholder="İşlem veya kategori ara..."
         aria-label="İşlem veya kategori ara"
+        autoComplete="off"
       />
 
       <select
         value={type}
-        onChange={(event) => onTypeChange(event.target.value)}
+        onChange={(event) =>
+          onTypeChange(event.target.value)
+        }
         aria-label="İşlem türü filtresi"
       >
         <option value="all">Tüm türler</option>
@@ -28,10 +33,13 @@ export default function TransactionFilters({
 
       <select
         value={category}
-        onChange={(event) => onCategoryChange(event.target.value)}
+        onChange={(event) =>
+          onCategoryChange(event.target.value)
+        }
         aria-label="İşlem kategorisi filtresi"
       >
         <option value="all">Tüm kategoriler</option>
+
         {categories.map((item) => (
           <option key={item} value={item}>
             {item}
