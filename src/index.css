@@ -2545,8 +2545,11 @@ textarea:focus-visible {
     flex: 1;
   }
 }
-
 .mobile-menu-button {
+  display: none;
+}
+
+.mobile-menu-overlay {
   display: none;
 }
 
@@ -2556,7 +2559,7 @@ textarea:focus-visible {
     position: fixed;
     top: 14px;
     left: 14px;
-    z-index: 10001;
+    z-index: 10002;
     width: 42px;
     height: 42px;
     align-items: center;
@@ -2566,19 +2569,31 @@ textarea:focus-visible {
     color: var(--text);
     background: rgba(23, 35, 51, 0.96);
     cursor: pointer;
+    font-family: inherit;
     font-size: 22px;
   }
 
-  .sidebar:not(.mobile-open) {
+  .mobile-menu-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 9998;
+    border: 0;
+    background: rgba(0, 0, 0, 0.35);
+  }
+
+  .sidebar {
+    position: fixed !important;
+    inset: 0 auto 0 0 !important;
+    width: 250px !important;
+    height: 100vh !important;
+    max-height: none !important;
+    z-index: 10000 !important;
     transform: translateX(-100%);
+    transition: transform 0.25s ease;
   }
 
   .sidebar.mobile-open {
     transform: translateX(0);
-    z-index: 10000;
-  }
-
-  .sidebar {
-    transition: transform 0.25s ease;
   }
 }
