@@ -2871,3 +2871,38 @@ textarea:focus-visible {
     flex: 1;
   }
 }
+
+/* AUTH LEGAL LINKS */
+.legal-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.legal-links a {
+  color: rgba(255, 255, 255, 0.42);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.legal-links a:hover {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.legal-links span {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+@media (max-width: 520px) {
+  .legal-links {
+    font-size: 9px;
+    gap: 6px;
+  }
+}

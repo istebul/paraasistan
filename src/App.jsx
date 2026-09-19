@@ -287,6 +287,14 @@ function AuthScreen() {
                 : "Hesap Oluştur"}
             </button>
           </form>
+
+          <div className="legal-links">
+            <a href="/legal/gizlilik.html">Gizlilik Politikası</a>
+            <span>•</span>
+            <a href="/legal/kvkk.html">KVKK Aydınlatma</a>
+            <span>•</span>
+            <a href="/legal/kullanim-kosullari.html">Kullanım Koşulları</a>
+          </div>
         </div>
       </div>
     </div>
