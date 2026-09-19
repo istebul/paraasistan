@@ -258,7 +258,7 @@ function AuthScreen() {
             </label>
 
             <label>
-              �?ifre
+              �Şifre
 
               <input
                 type="password"
