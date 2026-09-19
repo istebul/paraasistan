@@ -141,6 +141,7 @@ function AuthScreen() {
             email,
             password,
             options: {
+              emailRedirectTo: "https://paraasistan.istebul.com/",
               data: {
                 full_name: fullName,
               },
@@ -412,12 +413,34 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data }) => {
+    const initializeAuth = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
       if (!mounted) return;
+
+      if (error) {
+        console.error("Oturum başlatılamadı:", error);
+      }
 
       setSession(data.session);
       setCheckingSession(false);
-    });
+
+      const hash = window.location.hash;
+
+      if (
+        data.session &&
+        (hash.includes("access_token=") ||
+          hash.includes("refresh_token="))
+      ) {
+        window.history.replaceState(
+          {},
+          document.title,
+          window.location.pathname + window.location.search
+        );
+      }
+    };
+
+    initializeAuth();
 
     const {
       data: { subscription },
@@ -425,6 +448,17 @@ function App() {
       (_event, nextSession) => {
         setSession(nextSession);
         setCheckingSession(false);
+
+        if (
+          nextSession &&
+          window.location.hash.includes("access_token=")
+        ) {
+          window.history.replaceState(
+            {},
+            document.title,
+            window.location.pathname + window.location.search
+          );
+        }
       }
     );
 
