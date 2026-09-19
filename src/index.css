@@ -626,7 +626,9 @@ textarea {
 
 .panel-header h2 {
   margin: 0;
-  font-size: 17px;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
 }
 
 .panel-header p {
@@ -666,15 +668,17 @@ textarea {
 
 .category-info strong {
   min-width: 0;
-  font-size: 12px;
-  font-weight: 650;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   overflow-wrap: anywhere;
 }
 
 .category-info span {
   flex-shrink: 0;
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.5);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.58);
 }
 
 .progress {
@@ -698,6 +702,18 @@ textarea {
 .progress.large {
   height: 9px;
 }
+.category-list .progress {
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.category-list .progress > div {
+  background: linear-gradient(
+    90deg,
+    #507fac,
+    #79a8d8
+  );
+}
 
 .positive {
   color: #75d7a0 !important;
@@ -705,6 +721,10 @@ textarea {
 
 .negative {
   color: #f28d8d !important;
+}
+
+.warning {
+  color: #e6c66a !important;
 }
 
 /* =========================================================

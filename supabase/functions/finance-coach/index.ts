@@ -277,39 +277,98 @@ Deno.serve(async (req) => {
     const subscriptions = subscriptionsResult.data || [];
     const budget = budgetResult.data || null;
 
-    // Gelir
-    const income = transactions
-      .filter((t) => t.type === "income")
-      .reduce(
-        (sum, t) => sum + Number(t.amount || 0),
-        0
+    // Bu ay ve önceki ay işlemleri
+    const currentMonth =
+      new Date().toISOString().slice(0, 7);
+
+    const [year, monthNumber] =
+      currentMonth.split("-").map(Number);
+
+    const previousMonthDate = new Date(
+      year,
+      monthNumber - 2,
+      1
+    );
+
+    const previousMonth =
+      `${previousMonthDate.getFullYear()}-${String(
+        previousMonthDate.getMonth() + 1
+      ).padStart(2, "0")}`;
+
+    const currentMonthTransactions =
+      transactions.filter(
+        (transaction) =>
+          String(transaction.date || "").slice(0, 7) ===
+          currentMonth
       );
 
-    // Gider
-    const expense = transactions
-      .filter((t) => t.type === "expense")
-      .reduce(
-        (sum, t) => sum + Number(t.amount || 0),
-        0
+    const previousMonthTransactions =
+      transactions.filter(
+        (transaction) =>
+          String(transaction.date || "").slice(0, 7) ===
+          previousMonth
       );
 
-    // Bakiye
-    const balance = income - expense;
+    const calculateTransactionSummary = (
+      items: typeof transactions
+    ) => {
+      const income = items
+        .filter((t) => t.type === "income")
+        .reduce(
+          (sum, t) => sum + Number(t.amount || 0),
+          0
+        );
 
-    // Kategori giderleri
-    const categoryTotals: Record<string, number> = {};
+      const expense = items
+        .filter((t) => t.type === "expense")
+        .reduce(
+          (sum, t) => sum + Number(t.amount || 0),
+          0
+        );
 
-    for (const transaction of transactions) {
-      if (transaction.type !== "expense") continue;
+      const categoryTotals: Record<string, number> = {};
 
-      const category =
-        transaction.category || "Diğer";
+      for (const transaction of items) {
+        if (transaction.type !== "expense") continue;
 
-      categoryTotals[category] =
-        (categoryTotals[category] || 0) +
-        Number(transaction.amount || 0);
-    }
+        const category =
+          transaction.category || "Diğer";
 
+        categoryTotals[category] =
+          (categoryTotals[category] || 0) +
+          Number(transaction.amount || 0);
+      }
+
+      return {
+        income,
+        expense,
+        balance: income - expense,
+        categoryTotals,
+        transactionCount: items.length,
+      };
+    };
+
+    const currentMonthSummary =
+      calculateTransactionSummary(
+        currentMonthTransactions
+      );
+
+    const previousMonthSummary =
+      calculateTransactionSummary(
+        previousMonthTransactions
+      );
+
+    const income =
+      currentMonthSummary.income;
+
+    const expense =
+      currentMonthSummary.expense;
+
+    const balance =
+      currentMonthSummary.balance;
+
+    const categoryTotals =
+      currentMonthSummary.categoryTotals;
     // Hedefler
     const totalGoalTarget = goals.reduce(
       (sum, goal) =>
@@ -332,11 +391,19 @@ Deno.serve(async (req) => {
       );
 
     const financialSummary = {
+      period: currentMonth,
+
       income,
       expense,
       balance,
-
       categoryTotals,
+
+      previousMonth: {
+        period: previousMonth,
+        income: previousMonthSummary.income,
+        expense: previousMonthSummary.expense,
+        balance: previousMonthSummary.balance,
+      },
 
       goals: {
         count: goals.length,

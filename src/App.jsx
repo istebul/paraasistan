@@ -1,4 +1,4 @@
-﻿import {
+import {
   useCallback,
   useEffect,
   useMemo,
@@ -7,7 +7,6 @@
 import { supabase } from "./lib/supabase";
 import { calculateTotals } from "./lib/finance";
 import {
-  validateBudget,
   validateGoal,
   validateSubscription,
   validateTransaction,
@@ -259,7 +258,7 @@ function AuthScreen() {
             </label>
 
             <label>
-              Şifre
+              �?ifre
 
               <input
                 type="password"
@@ -307,6 +306,8 @@ function App() {
   const [subscriptions, setSubscriptions] =
     useState([]);
   const [budget, setBudget] = useState(15000);
+  const [categoryLimits, setCategoryLimits] = useState({});
+  const [categoryLimitInputs, setCategoryLimitInputs] = useState({});
 
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] =
@@ -366,8 +367,6 @@ function App() {
       type: "expense",
     });
 
-  const [budgetInput, setBudgetInput] =
-    useState("");
 
   const [coachQuestion, setCoachQuestion] =
     useState("");
@@ -441,6 +440,7 @@ function App() {
         budgetResult,
         profileResult,
         membershipResult,
+        categoryLimitsResult,
       ] = await Promise.all([
         supabase
           .from("transactions")
@@ -484,6 +484,13 @@ function App() {
           .maybeSingle(),
 
         supabase
+          .from("budget_category_limits")
+          .select("*")
+          .order("category", {
+            ascending: true,
+          }),
+
+        supabase
           .from("memberships")
           .select("*")
           .maybeSingle(),
@@ -510,6 +517,27 @@ function App() {
       if (membershipResult.error)
         throw membershipResult.error;
 
+      if (categoryLimitsResult.error)
+        throw categoryLimitsResult.error;
+
+      setCategoryLimits(
+        Object.fromEntries(
+          (Array.isArray(categoryLimitsResult.data) ? categoryLimitsResult.data : []).map((item) => [
+            item.category,
+            Number(item.amount || 0),
+          ])
+        )
+      );
+
+      setCategoryLimitInputs(
+        Object.fromEntries(
+          (Array.isArray(categoryLimitsResult.data) ? categoryLimitsResult.data : []).map((item) => [
+            item.category,
+            String(item.amount || ""),
+          ])
+        )
+      );
+
       setTransactions(
         transactionsResult.data || []
       );
@@ -532,9 +560,6 @@ function App() {
         savedBudget !== null
       ) {
         setBudget(Number(savedBudget));
-        setBudgetInput(String(savedBudget));
-      } else {
-        setBudgetInput(String(budget));
       }
 
       const profileData =
@@ -569,7 +594,7 @@ function App() {
     } finally {
       setLoadingData(false);
     }
-  }, [budget, profileFallbackName, userId]);
+  }, [profileFallbackName, userId]);
 
   useEffect(() => {
     loadData();
@@ -1538,48 +1563,62 @@ function App() {
     );
   };
 
-  const saveBudget = async (e) => {
-    e.preventDefault();
+  const saveCategoryLimit = async (category) => {
+    const rawValue =
+      categoryLimitInputs[category] ?? "";
 
-    const validationError =
-      validateBudget(budgetInput);
+    const value =
+      rawValue === ""
+        ? 0
+        : Number(rawValue);
 
-    if (validationError) {
-      showToast(validationError, "error");
+    if (!Number.isFinite(value) || value < 0) {
+      showToast(
+        "Geçerli bir kategori bütçesi gir.",
+        "error"
+      );
       return;
     }
 
-    const value = Number(
-      budgetInput
-    );
-
-    const { error } =
+    const { data, error } =
       await supabase
-        .from("budgets")
+        .from("budget_category_limits")
         .upsert(
           {
             user_id: session.user.id,
+            category,
             amount: value,
             updated_at:
               new Date().toISOString(),
           },
           {
-            onConflict: "user_id",
+            onConflict:
+              "user_id,category",
           }
-        );
+        )
+        .select()
+        .single();
 
     if (error) {
       showToast(error.message, "error");
       return;
     }
 
-    setBudget(value);
+    setCategoryLimits((prev) => ({
+      ...prev,
+      [category]: Number(data.amount || 0),
+    }));
+
+    setCategoryLimitInputs((prev) => ({
+      ...prev,
+      [category]: String(data.amount || ""),
+    }));
 
     showToast(
-      "Bütçe başarıyla güncellendi."
+      `${category} bütçesi güncellendi.`,
+      "success"
     );
   };
-
   const saveProfile = async (e) => {
     e.preventDefault();
 
@@ -1867,17 +1906,95 @@ function App() {
                     (item, index) => (
                       <div
                         key={index}
+                        className={`insight-item insight-${item.type}`}
                         style={{
                           padding: "12px",
                           borderRadius:
                             "12px",
                           background:
-                            "rgba(0,0,0,.035)",
+                            item.type === "success"
+                              ? "rgba(94,224,154,.14)"
+                              : item.type === "warning"
+                                ? "rgba(244,190,84,.14)"
+                                : item.type === "danger"
+                                  ? "rgba(239,105,105,.14)"
+                                  : "rgba(121,181,255,.14)",
+                          borderLeft:
+                            item.type === "success"
+                              ? "3px solid rgba(94,224,154,.9)"
+                              : item.type === "warning"
+                                ? "3px solid rgba(244,190,84,.9)"
+                                : item.type === "danger"
+                                  ? "3px solid rgba(239,105,105,.9)"
+                                  : "3px solid rgba(121,181,255,.9)",
                         }}
                       >
-                        <strong>
-                          {item.title}
-                        </strong>
+                        <div
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "10px",
+                            marginBottom: "8px",
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "3px 8px",
+                              borderRadius: "999px",
+                              fontSize: "10px",
+                              fontWeight: 750,
+                              letterSpacing: "0.02em",
+                              background:
+                                item.type === "success"
+                                  ? "rgba(94,224,154,.24)"
+                                  : item.type === "warning"
+                                    ? "rgba(244,190,84,.24)"
+                                    : item.type === "danger"
+                                      ? "rgba(239,105,105,.24)"
+                                      : "rgba(121,181,255,.24)",
+                              border:
+                                item.type === "success"
+                                  ? "1px solid rgba(94,224,154,.42)"
+                                  : item.type === "warning"
+                                    ? "1px solid rgba(244,190,84,.42)"
+                                    : item.type === "danger"
+                                      ? "1px solid rgba(239,105,105,.42)"
+                                      : "1px solid rgba(121,181,255,.42)",
+                              color:
+                                item.type === "success"
+                                  ? "rgb(94,224,154)"
+                                  : item.type === "warning"
+                                    ? "rgb(244,190,84)"
+                                    : item.type === "danger"
+                                      ? "rgb(239,105,105)"
+                                      : "rgb(121,181,255)",
+                            }}
+                          >
+                            {item.type === "success"
+                              ? "Olumlu"
+                              : item.type === "warning"
+                                ? "Dikkat"
+                                : item.type === "danger"
+                                  ? "Kritik"
+                                  : "Bilgi"}
+                          </span>
+                          <strong
+                            style={{
+                              color:
+                                item.type === "success"
+                                  ? "rgb(94,224,154)"
+                                  : item.type === "warning"
+                                    ? "rgb(244,190,84)"
+                                    : item.type === "danger"
+                                      ? "rgb(239,105,105)"
+                                      : "rgb(121,181,255)",
+                            }}
+                          >
+                            {item.title}
+                          </strong>
+                        </div>
 
                         <p
                           style={{
@@ -1912,6 +2029,7 @@ function App() {
               />
 
               <DashboardSubscriptionsCard
+                items={subscriptions}
                 total={subscriptionTotal}
                 currency={currency}
                 money={money}
@@ -2140,114 +2258,288 @@ function App() {
             <div className="panel">
               <div className="panel-header">
                 <div>
-                  <h2>
-                    Bütçe Ayarla
-                  </h2>
-
+                  <h2>Kategori Bütçeleri</h2>
                   <p>
-                    Aylık harcama
-                    limitini belirle
+                    Her kategori için aylık harcama limiti belirle
                   </p>
                 </div>
               </div>
 
-              <form
-                onSubmit={saveBudget}
-                className="inline-form"
-              >
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={budgetInput}
-                  onChange={(e) =>
-                    setBudgetInput(
-                      e.target.value
-                    )
-                  }
-                />
+              {(() => {
+                const totalCategoryLimit =
+                  CATEGORY_OPTIONS.reduce(
+                    (sum, category) =>
+                      sum +
+                      Number(categoryLimits[category] || 0),
+                    0
+                  );
 
-                <button className="primary-button">
-                  Bütçeyi Kaydet
-                </button>
-              </form>
-            </div>
+                const totalCategorySpent =
+                  CATEGORY_OPTIONS.reduce(
+                    (sum, category) =>
+                      sum +
+                      Number(
+                        categoryTotals.find(
+                          ([name]) => name === category
+                        )?.[1] || 0
+                      ),
+                    0
+                  );
 
-            <div className="panel">
-              <div className="panel-header">
-                <div>
-                  <h2>
-                    Bütçe Kontrolü
-                  </h2>
+                const totalCategoryUsage =
+                  totalCategoryLimit > 0
+                    ? (totalCategorySpent /
+                        totalCategoryLimit) *
+                      100
+                    : 0;
 
-                  <p>
-                    Harcama seviyene göre
-                    durumun
-                  </p>
-                </div>
+                const totalCategoryRemaining =
+                  totalCategoryLimit -
+                  totalCategorySpent;
+
+                return (
+                  <>
+                    {totalCategoryLimit > 0 && (
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns:
+                            "repeat(auto-fit, minmax(150px, 1fr))",
+                          gap: "10px",
+                          marginBottom: "12px",
+                        }}
+                      >
+                        <div className="stat-card">
+                          <span>Toplam Limit</span>
+                          <strong>
+                            {money(
+                              totalCategoryLimit,
+                              currency
+                            )}
+                          </strong>
+                        </div>
+
+                        <div className="stat-card">
+                          <span>Toplam Harcama</span>
+                          <strong>
+                            {money(
+                              totalCategorySpent,
+                              currency
+                            )}
+                          </strong>
+                        </div>
+
+                        <div className="stat-card">
+                          <span>Toplam Kullanım</span>
+                          <strong
+                            className={
+                              totalCategoryUsage >= 100
+                                ? "negative"
+                                : totalCategoryUsage >= 80
+                                ? "warning"
+                                : "positive"
+                            }
+                          >
+                            %{Math.round(
+                              totalCategoryUsage
+                            )}
+                          </strong>
+                        </div>
+
+                        <div className="stat-card">
+                          <span>
+                            {totalCategoryRemaining >= 0
+                              ? "Toplam Kalan"
+                              : "Toplam Aşım"}
+                          </span>
+                          <strong
+                            className={
+                              totalCategoryRemaining >= 0
+                                ? "positive"
+                                : "negative"
+                            }
+                          >
+                            {money(
+                              Math.abs(
+                                totalCategoryRemaining
+                              ),
+                              currency
+                            )}
+                          </strong>
+                        </div>
+                      </div>
+                    )}
+
+                    <div
+                      style={{
+                        display: "grid",
+                        gap: "12px",
+                        marginTop: "12px",
+                      }}
+                    >
+                      {CATEGORY_OPTIONS.map((category) => {
+                  const spent = Number(
+                    categoryTotals.find(
+                      ([name]) => name === category
+                    )?.[1] || 0
+                  );
+
+                  const limit = Number(
+                    categoryLimits[category] || 0
+                  );
+
+                  const inputValue =
+                    categoryLimitInputs[category] ?? "";
+
+                  const usage =
+                    limit > 0
+                      ? (spent / limit) * 100
+                      : 0;
+
+                  const remaining = limit - spent;
+
+                  return (
+                    <div
+                      key={category}
+                      style={{
+                        padding: "14px",
+                        border: "1px solid var(--border-color)",
+                        borderRadius: "14px",
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          gap: "12px",
+                          alignItems: "center",
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <div>
+                          <strong>{category}</strong>
+
+                          <div
+                            style={{
+                              marginTop: "4px",
+                              fontSize: "13px",
+                              opacity: 0.75,
+                            }}
+                          >
+                            Harcanan:{" "}
+                            {money(spent, currency)}
+
+                            {limit > 0 && (
+                              <span>
+                                {" "}
+                                • Limit:{" "}
+                                {money(limit, currency)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <form
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            saveCategoryLimit(category);
+                          }}
+                          style={{
+                            display: "flex",
+                            gap: "8px",
+                            alignItems: "center",
+                            flexWrap: "wrap",
+                          }}
+                        >
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Aylık limit"
+                            value={inputValue}
+                            onChange={(e) =>
+                              setCategoryLimitInputs((prev) => ({
+                                ...prev,
+                                [category]: e.target.value,
+                              }))
+                            }
+                            style={{
+                              width: "150px",
+                            }}
+                          />
+
+                          <button
+                            type="submit"
+                            className="primary-button"
+                          >
+                            Kaydet
+                          </button>
+                        </form>
+                      </div>
+
+                      {limit > 0 && (
+                        <div>
+                          <div
+                            className="progress"
+                            style={{
+                              marginTop: "12px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                width:
+                                  Math.min(usage, 100) + "%",
+                              }}
+                            />
+                          </div>
+
+                          <div
+                            style={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              gap: "10px",
+                              marginTop: "7px",
+                              fontSize: "13px",
+                            }}
+                          >
+                            <span>
+                              %{Math.round(usage)} kullanıldı
+                            </span>
+
+                            <strong
+                              className={
+                                usage >= 100
+                                  ? "negative"
+                                  : usage >= 80
+                                  ? "warning"
+                                  : "positive"
+                              }
+                            >
+                              {remaining >= 0
+                                ? "Kalan: " +
+                                  money(
+                                    remaining,
+                                    currency
+                                  )
+                                : "Aşım: " +
+                                  money(
+                                    Math.abs(remaining),
+                                    currency
+                                  )}
+                            </strong>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-
-              <div
-                className="coach-stats"
-                style={{
-                  marginTop: "10px",
-                }}
-              >
-                <div>
-                  <span>Bütçe</span>
-
-                  <strong>
-                    {money(
-                      budget,
-                      currency
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>Harcanan</span>
-
-                  <strong>
-                    {money(
-                      totals.expense,
-                      currency
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>Kalan</span>
-
-                  <strong
-                    className={
-                      budgetRemaining >=
-                      0
-                        ? "positive"
-                        : "negative"
-                    }
-                  >
-                    {money(
-                      budgetRemaining,
-                      currency
-                    )}
-                  </strong>
-                </div>
-
-                <div>
-                  <span>Kullanım</span>
-
-                  <strong>
-                    %
-                    {Math.round(
-                      budgetUsage
-                    )}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          </section>
+            </>
+          );
+        })()}
+          </div>
+        </section>
         )}
-
         {/* REPORTS */}
 
         {page === "reports" && (
@@ -3366,3 +3658,8 @@ function App() {
 }
 
 export default App;
+
+
+
+
+
