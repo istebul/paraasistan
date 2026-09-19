@@ -2,6 +2,7 @@ import { Component, StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import PwaInstallPrompt from "./components/PwaInstallPrompt.jsx";
 
 class AppErrorBoundary extends Component {
   state = { hasError: false }
@@ -38,6 +39,15 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppErrorBoundary>
       <App />
+      <PwaInstallPrompt />
     </AppErrorBoundary>
   </StrictMode>,
 )
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.error('Service Worker kayıt hatası:', error)
+    })
+  })
+}
