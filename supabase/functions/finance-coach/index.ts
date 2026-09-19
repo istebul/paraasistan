@@ -383,12 +383,27 @@ Deno.serve(async (req) => {
     );
 
     // Abonelikler
-    const monthlySubscriptions =
+    const monthlySubscriptionExpense =
       subscriptions.reduce(
         (sum, subscription) =>
-          sum + Number(subscription.amount || 0),
+          subscription.type === "income"
+            ? sum
+            : sum + Number(subscription.amount || 0),
         0
       );
+
+    const monthlySubscriptionIncome =
+      subscriptions.reduce(
+        (sum, subscription) =>
+          subscription.type === "income"
+            ? sum + Number(subscription.amount || 0)
+            : sum,
+        0
+      );
+
+    const monthlySubscriptionNet =
+      monthlySubscriptionIncome -
+      monthlySubscriptionExpense;
 
     const financialSummary = {
       period: currentMonth,
@@ -413,7 +428,9 @@ Deno.serve(async (req) => {
 
       subscriptions: {
         count: subscriptions.length,
-        monthlyTotal: monthlySubscriptions,
+        monthlyExpense: monthlySubscriptionExpense,
+        monthlyIncome: monthlySubscriptionIncome,
+        monthlyNet: monthlySubscriptionNet,
       },
 
       budget: budget
@@ -488,7 +505,7 @@ Deno.serve(async (req) => {
                 role: "system",
 
                 content:
-                  "Sen ParaAsistan uygulamasının kişisel finans koçusun. Kullanıcının finansal verilerini analiz et. Türkçe, net, anlaşılır ve uygulanabilir öneriler ver. Yatırım tavsiyesi vermek yerine bütçe yönetimi, tasarruf, harcama kontrolü, hedefler ve finansal planlama konusunda yardımcı ol. Kullanıcının gerçek verilerine dayan. Rakamları doğru kullan.",
+                  "Sen ParaAsistan uygulamasının kişisel finans koçusun. Kullanıcının sağlanan gerçek finansal verilerini analiz et ve sorusuna doğrudan cevap ver. Türkçe, net, sakin, anlaşılır ve uygulanabilir konuş. Verilerde bulunmayan bilgileri varsayma; belirsiz veya eksik veri varsa bunu açıkça belirt. Gelir, gider, bakiye ve abonelik gelir/giderlerini birbirine karıştırma. Bütçe, harcama kategorileri, hedefler ve önceki ay verileri mevcutsa bunları değerlendirmende kullan. Rakamları doğru kullan ve mümkün olduğunda hesaplamalarını verilen verilerle destekle. Yatırım ürünü seçimi veya kişiselleştirilmiş yatırım tavsiyesi vermek yerine bütçe yönetimi, tasarruf, harcama kontrolü, hedefler ve finansal planlama konularında yardımcı ol.",
               },
 
               {
@@ -507,13 +524,20 @@ Kullanıcının sorusu:
 
 ${question}
 
-Bu verilere göre kullanıcıya kişiselleştirilmiş bir finansal değerlendirme yap.
+Bu verilere ve kullanıcının sorusuna göre kişiselleştirilmiş bir finansal değerlendirme yap.
 
-Önce mevcut durumu kısa şekilde özetle.
+Şu sırayı izle:
 
-Ardından en önemli 3-5 öneriyi ver.
+1. Mevcut durumu 2-4 cümleyle, mümkün olduğunca gerçek rakamları kullanarak özetle.
+2. Kullanıcının sorusuna doğrudan cevap ver.
+3. En önemli 3-5 öneriyi önem sırasına göre ver. Her öneri mümkün olduğunca somut ve uygulanabilir olsun.
+4. Önceki ay verisi soruyla ilgiliyse değişimi belirt.
+5. Bütçe verisi varsa bütçe kullanımını ve varsa aşımı dikkate al.
+6. Hedefler varsa toplam ilerlemeyi ve hedeflerle ilgili önemli noktaları dikkate al.
+7. Aboneliklerde aylık gider, aylık gelir ve net etki değerlerini ayrı değerlendir.
+8. Veriler yeterli değilse tahmin yapmak yerine hangi bilginin eksik olduğunu belirt.
 
-Mümkünse rakamlarla konuş.
+Gereksiz uzunlukta yazma. Kullanıcıya anlaşılır, pratik ve gerçek verilerine dayalı bir cevap ver.
 
 Cevabı Türkçe yaz.
                 `,

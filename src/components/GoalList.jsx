@@ -18,11 +18,18 @@ export default function GoalList({ goals, contributions, currency, money, dateTe
             const progress = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
             const remaining = Math.max(target - saved, 0);
             const days = daysUntil(goal.deadline);
-            const deadlineText = goal.deadline
-              ? days !== null
-                ? days < 0 ? "Süre geçti" : `${days} gün kaldı`
-                : dateText(goal.deadline)
-              : "Son tarih yok";
+            const deadlineText =
+              progress >= 100
+                ? "Tamamlandı"
+                : goal.deadline
+                  ? days !== null
+                    ? days < 0
+                      ? "Süre geçti"
+                      : days === 0
+                        ? "Bugün"
+                        : `${days} gün kaldı`
+                    : dateText(goal.deadline)
+                  : "Son tarih yok";
             const goalContributions = contributions
               .filter((item) => item.goal_id === goal.id)
               .slice(0, 5);

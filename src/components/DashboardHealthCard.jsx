@@ -2,11 +2,39 @@ export function DashboardHealthCard({
   score,
   label,
   message,
+  savingsRate,
+  budgetUsage,
+  goals,
 }) {
   const safeScore = Math.min(
     100,
     Math.max(0, Number(score) || 0)
   );
+
+  const safeSavingsRate = Number(savingsRate) || 0;
+  const safeBudgetUsage = Math.max(
+    0,
+    Number(budgetUsage) || 0
+  );
+
+  const goalProgress =
+    goals.length > 0
+      ? Math.round(
+          (goals.reduce((sum, goal) => {
+            const target = Number(goal.target) || 0;
+            const saved = Number(goal.saved) || 0;
+
+            return (
+              sum +
+              (target > 0
+                ? Math.min(saved / target, 1)
+                : 0)
+            );
+          }, 0) /
+            goals.length) *
+            100
+        )
+      : null;
 
   const getStatusText = () => {
     if (safeScore >= 80) return "Çok iyi";
@@ -54,6 +82,39 @@ export function DashboardHealthCard({
       <div className="health-summary">
         <strong>{label}</strong>
         <span>{message}</span>
+      </div>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            "repeat(3, minmax(0, 1fr))",
+          gap: "10px",
+          marginTop: "16px",
+        }}
+      >
+        <div className="health-indicator">
+          <small>Tasarruf</small>
+          <strong>
+            %{Math.round(safeSavingsRate)}
+          </strong>
+        </div>
+
+        <div className="health-indicator">
+          <small>Bütçe</small>
+          <strong>
+            %{Math.round(safeBudgetUsage)}
+          </strong>
+        </div>
+
+        <div className="health-indicator">
+          <small>Hedefler</small>
+          <strong>
+            {goalProgress === null
+              ? "Hedef yok"
+              : `%${goalProgress}`}
+          </strong>
+        </div>
       </div>
     </div>
   );

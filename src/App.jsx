@@ -59,9 +59,13 @@ const money = (value, currency = "TRY") =>
 const dateText = (value) => {
   if (!value) return "-";
 
-  return new Date(`${value}T00:00:00`).toLocaleDateString(
-    "tr-TR"
-  );
+  const date = /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00`)
+    : new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("tr-TR");
 };
 
 const today = () => {
@@ -481,8 +485,8 @@ function App() {
         subscriptionsResult,
         budgetResult,
         profileResult,
-        membershipResult,
         categoryLimitsResult,
+        membershipResult,
       ] = await Promise.all([
         supabase
           .from("transactions")
@@ -535,6 +539,7 @@ function App() {
         supabase
           .from("memberships")
           .select("*")
+          .eq("user_id", userId)
           .maybeSingle(),
       ]);
 
@@ -749,6 +754,19 @@ function App() {
           : sum + Number(item.amount || 0),
       0
     );
+
+  const subscriptionCount = subscriptions.length;
+
+  const subscriptionIncome = subscriptions.reduce(
+    (sum, item) =>
+      item.type === "income"
+        ? sum + Number(item.amount || 0)
+        : sum,
+    0
+  );
+
+  const subscriptionNet =
+    subscriptionIncome - subscriptionTotal;
 
   const categoryTotals = useMemo(() => {
     const result = {};
@@ -1887,6 +1905,9 @@ function App() {
                 score={financialHealth}
                 label={healthLabel}
                 message={healthMessage}
+                savingsRate={savingsRate}
+                budgetUsage={budgetUsage}
+                goals={goals}
               />
 
               <DashboardBudgetCard
@@ -1918,6 +1939,7 @@ function App() {
                 }
                 currency={currency}
                 money={money}
+                categoryLimits={categoryLimits}
                 onExport={
                   exportTransactions
                 }
@@ -2152,6 +2174,90 @@ function App() {
               onSubmit={addGoal}
             />
 
+            {(() => {
+              const totalTarget = goals.reduce(
+                (sum, goal) =>
+                  sum + (Number(goal.target) || 0),
+                0
+              );
+
+              const totalSaved = goals.reduce(
+                (sum, goal) =>
+                  sum + (Number(goal.saved) || 0),
+                0
+              );
+
+              const totalRemaining = Math.max(
+                totalTarget - totalSaved,
+                0
+              );
+
+              const overallProgress =
+                totalTarget > 0
+                  ? Math.min(
+                      100,
+                      (totalSaved / totalTarget) * 100
+                    )
+                  : 0;
+
+              return (
+                <div className="panel">
+                  <div className="panel-header">
+                    <div>
+                      <h2>Hedef Özeti</h2>
+                      <p>Tüm finansal hedeflerinin genel durumu</p>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns:
+                        "repeat(4, minmax(0, 1fr))",
+                      gap: "10px",
+                    }}
+                  >
+                    <div className="health-indicator">
+                      <small>Toplam Hedef</small>
+                      <strong>{goals.length}</strong>
+                    </div>
+
+                    <div className="health-indicator">
+                      <small>Toplam Birikim</small>
+                      <strong>
+                        {money(totalSaved, currency)}
+                      </strong>
+                    </div>
+
+                    <div className="health-indicator">
+                      <small>Toplam Kalan</small>
+                      <strong>
+                        {money(totalRemaining, currency)}
+                      </strong>
+                    </div>
+
+                    <div className="health-indicator">
+                      <small>Genel İlerleme</small>
+                      <strong>
+                        %{Math.round(overallProgress)}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div
+                    className="progress large"
+                    style={{ marginTop: "14px" }}
+                  >
+                    <div
+                      style={{
+                        width: `${overallProgress}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
             <GoalList
               goals={goals}
               contributions={
@@ -2199,6 +2305,57 @@ function App() {
                 addSubscription
               }
             />
+
+            <div className="panel">
+              <div className="panel-header">
+                <div>
+                  <h2>Abonelik Özeti</h2>
+                  <p>Gelir ve gider aboneliklerinin genel durumu</p>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns:
+                    "repeat(4, minmax(0, 1fr))",
+                  gap: "10px",
+                }}
+              >
+                <div className="health-indicator">
+                  <small>Toplam Abonelik</small>
+                  <strong>{subscriptionCount}</strong>
+                </div>
+
+                <div className="health-indicator">
+                  <small>Aylık Gider</small>
+                  <strong>
+                    {money(subscriptionTotal, currency)}
+                  </strong>
+                </div>
+
+                <div className="health-indicator">
+                  <small>Aylık Gelir</small>
+                  <strong>
+                    {money(subscriptionIncome, currency)}
+                  </strong>
+                </div>
+
+                <div className="health-indicator">
+                  <small>Net Etki</small>
+                  <strong
+                    className={
+                      subscriptionNet >= 0
+                        ? "positive"
+                        : "negative"
+                    }
+                  >
+                    {subscriptionNet >= 0 ? "+" : ""}
+                    {money(subscriptionNet, currency)}
+                  </strong>
+                </div>
+              </div>
+            </div>
 
             <SubscriptionList
               items={subscriptions}
@@ -2754,8 +2911,19 @@ function App() {
                         ([
                           category,
                           amount,
-                        ]) => (
-                          <div
+                        ]) => {
+                          const categoryLimit = Number(
+                            categoryLimits[category] || 0
+                          );
+                          const categoryUsage =
+                            categoryLimit > 0
+                              ? (amount / categoryLimit) * 100
+                              : 0;
+                          const categoryRemaining =
+                            categoryLimit - amount;
+
+                          return (
+                            <div
                             className="category-row"
                             key={
                               category
@@ -2774,6 +2942,49 @@ function App() {
                                   currency
                                 )}
                               </span>
+
+                              {categoryLimit > 0 && (
+                                <>
+                                  <small
+                                    style={{
+                                      display: "block",
+                                      marginTop: "4px",
+                                      opacity: 0.7,
+                                    }}
+                                  >
+                                    Limit: {money(
+                                      categoryLimit,
+                                      currency
+                                    )} · Kullanım: %{Math.round(
+                                      categoryUsage
+                                    )}
+                                  </small>
+
+                                  <small
+                                    className={
+                                      categoryUsage >= 100
+                                        ? "negative"
+                                        : categoryUsage >= 80
+                                          ? "warning"
+                                          : "positive"
+                                    }
+                                    style={{
+                                      display: "block",
+                                      marginTop: "3px",
+                                    }}
+                                  >
+                                    {categoryRemaining >= 0
+                                      ? `Kalan: ${money(
+                                          categoryRemaining,
+                                          currency
+                                        )}`
+                                      : `Aşım: ${money(
+                                          Math.abs(categoryRemaining),
+                                          currency
+                                        )}`}
+                                  </small>
+                                </>
+                              )}
                             </div>
 
                             <div className="progress">
@@ -2791,8 +3002,9 @@ function App() {
                                 }}
                               />
                             </div>
-                          </div>
-                        )
+                            </div>
+                          );
+                        }
                       )}
                   </div>
                 )}

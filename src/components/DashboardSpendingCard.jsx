@@ -4,6 +4,7 @@ export default function DashboardSpendingCard({
   expenseTotal,
   currency,
   money,
+  categoryLimits = {},
   onExport,
 }) {
   const safeExpenseTotal = Number(expenseTotal) || 0;
@@ -129,6 +130,15 @@ export default function DashboardSpendingCard({
                       100
                     : 0;
 
+                const limit = Number(
+                  categoryLimits[category] || 0
+                );
+                const usage =
+                  limit > 0
+                    ? (safeAmount / limit) * 100
+                    : 0;
+                const remaining = limit - safeAmount;
+
                 return (
                   <div
                     className="category-row"
@@ -143,6 +153,38 @@ export default function DashboardSpendingCard({
                           currency
                         )}
                       </span>
+
+                      {limit > 0 && (
+                        <>
+                          <small
+                          style={{
+                            display: "block",
+                            marginTop: "4px",
+                            opacity: 0.7,
+                          }}
+                        >
+                          Limit: {money(limit, currency)} · Kullanım: %{Math.round(usage)}
+                        </small>
+
+                        <small
+                          className={
+                            usage >= 100
+                              ? "negative"
+                              : usage >= 80
+                                ? "warning"
+                                : "positive"
+                          }
+                          style={{
+                            display: "block",
+                            marginTop: "3px",
+                          }}
+                        >
+                          {remaining >= 0
+                            ? `Kalan: ${money(remaining, currency)}`
+                            : `Aşım: ${money(Math.abs(remaining), currency)}`}
+                          </small>
+                        </>
+                      )}
                     </div>
 
                     <div className="progress">
