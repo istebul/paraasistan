@@ -17,6 +17,31 @@ const OPTIONS = [
     description: "Dashboard'dan gelir veya gider eklemeyi sağlar.",
   },
   {
+    key: "forecast",
+    label: "Finansal Öngörü",
+    description: "Mevcut kayıt temposuna göre ay sonu görünümünü gösterir.",
+  },
+  {
+    key: "cashFlow",
+    label: "Nakit Akışı Takvimi",
+    description: "Önümüzdeki 30 gündeki gelir, gider ve sabit ödemeleri gösterir.",
+  },
+  {
+    key: "savingsPlan",
+    label: "Akıllı Tasarruf Planı",
+    description: "Hedeflerin için mevcut birikim kapasitesini ve gereken katkıyı hesaplar.",
+  },
+  {
+    key: "spendingBehavior",
+    label: "Harcama Davranışı",
+    description: "Bu ay ve geçen ay arasındaki kategori harcama değişimlerini gösterir.",
+  },
+  {
+    key: "subscriptionIntelligence",
+    label: "Abonelik ve Tekrarlayan Ödeme Zekâsı",
+    description: "Yaklaşan sabit ödemeleri ve aylık sabit gelir-gider yükünü gösterir.",
+  },
+  {
     key: "coach",
     label: "AI Finans Koçu",
     description: "Dashboard'dan günlük finansal öneri almayı sağlar.",

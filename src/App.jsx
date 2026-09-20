@@ -24,6 +24,8 @@ import GoalList from "./components/GoalList";
 import GoalContributionModal from "./components/GoalContributionModal";
 import SubscriptionForm from "./components/SubscriptionForm";
 import SubscriptionList from "./components/SubscriptionList";
+import SubscriptionIntelligence from "./components/SubscriptionIntelligence";
+import AdvancedReports from "./components/AdvancedReports";
 import EditTransactionModal from "./components/EditTransactionModal";
 import ConfirmDialog from "./components/ConfirmDialog";
 import DashboardStats from "./components/DashboardStats";
@@ -40,6 +42,11 @@ import QuickTransaction from "./components/QuickTransaction";
 import DailyAlerts from "./components/DailyAlerts";
 import DashboardPreferences from "./components/DashboardPreferences";
 import DashboardCoach from "./components/DashboardCoach";
+import CoachProOverview from "./components/CoachProOverview";
+import MonthlyForecast from "./components/MonthlyForecast";
+import CashFlowCalendar from "./components/CashFlowCalendar";
+import SavingsPlan from "./components/SavingsPlan";
+import SpendingBehavior from "./components/SpendingBehavior";
 import heroImage from "./assets/hero.png";
 import "./index.css";
 
@@ -428,7 +435,12 @@ function App() {
     alerts: true,
     quickTransaction: true,
     coach: true,
-    health: true,
+        forecast: true,
+    cashFlow: true,
+  savingsPlan: true,
+  spendingBehavior: true,
+  subscriptionIntelligence: true,
+health: true,
     budget: true,
     spending: true,
     insights: true,
@@ -2136,6 +2148,59 @@ function App() {
               />
             )}
 
+            {dashboardPreferences.forecast && (
+              <MonthlyForecast
+                transactions={transactions}
+                selectedMonth={selectedMonth}
+                totals={totals}
+                budget={budget}
+                currency={currency}
+                money={money}
+              />
+            )}
+
+            {dashboardPreferences.cashFlow && (
+              <CashFlowCalendar
+                transactions={transactions}
+                subscriptions={subscriptions}
+                currency={currency}
+                money={money}
+              />
+            )}
+            {dashboardPreferences.savingsPlan && (
+              <SavingsPlan
+                goals={goals}
+                totals={totals}
+                currency={currency}
+                money={money}
+                daysUntil={daysUntil}
+                onOpenGoals={() => navigate("goals")}
+              />
+            )}
+            {dashboardPreferences.spendingBehavior && (
+              <SpendingBehavior
+                currentTransactions={
+                  selectedMonthTransactions
+                }
+                previousTransactions={
+                  previousMonthTransactions
+                }
+                month={monthLabel(selectedMonth)}
+                currency={currency}
+                money={money}
+              />
+            )}
+            {dashboardPreferences.subscriptionIntelligence && (
+              <SubscriptionIntelligence
+                subscriptions={subscriptions}
+                currency={currency}
+                money={money}
+                onOpenSubscriptions={() =>
+                  navigate("subscriptions")
+                }
+              />
+            )}
+
             <DashboardStats
               totals={totals}
               currency={currency}
@@ -3375,6 +3440,48 @@ function App() {
                 </span>
               </div>
             </section>
+            {isPremium ? (
+              <AdvancedReports
+                monthlyTrend={monthlyTrend}
+                categoryTotals={categoryTotals}
+                currency={currency}
+                money={money}
+              />
+            ) : (
+              <section className="panel advanced-reports-card">
+                <div className="panel-header">
+                  <div>
+                    <h2>Gelişmiş Raporlama</h2>
+                    <p>
+                      Uzun dönem finansal görünüm ve gelişmiş
+                      harcama analizleri.
+                    </p>
+                  </div>
+                  <span className="advanced-reports-badge">
+                    PREMIUM
+                  </span>
+                </div>
+
+                <div className="advanced-reports-locked">
+                  <strong>
+                    Gelişmiş Raporlar Premium özelliğidir.
+                  </strong>
+                  <p>
+                    Altı aylık trend, dönem değişimleri ve
+                    kategori yoğunlaşması gibi gelişmiş
+                    analizleri görmek için Premium erişimi gerekir.
+                  </p>
+                  <button
+                    className="primary-button"
+                    type="button"
+                    onClick={() => navigate("premium")}
+                  >
+                    Premium'u incele
+                  </button>
+                </div>
+              </section>
+            )}
+
 
             <section className="panel">
               <div className="panel-header">
@@ -3479,6 +3586,19 @@ function App() {
                 </button>
               </div>
             )}
+
+            <CoachProOverview
+              isPremium={isPremium}
+              totals={totals}
+              savingsRate={savingsRate}
+              budgetUsage={budgetUsage}
+              goals={goals}
+              subscriptions={subscriptions}
+              currency={currency}
+              money={money}
+              onAsk={askCoach}
+              coachLoading={coachLoading}
+            />
 
             <div className="coach-quick-actions">
               <button
