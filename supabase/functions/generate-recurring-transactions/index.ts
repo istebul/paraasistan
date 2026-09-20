@@ -41,9 +41,32 @@ Deno.serve(async (req) => {
 
   try {
     const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = now.getUTCMonth() + 1;
-    const recurringMonth = `${year}-${String(month).padStart(2, "0")}`;
+
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Istanbul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(now);
+
+    const year = Number(
+      parts.find((part) => part.type === "year")?.value
+    );
+
+    const month = Number(
+      parts.find((part) => part.type === "month")?.value
+    );
+
+    const day = Number(
+      parts.find((part) => part.type === "day")?.value
+    );
+
+    if (!year || !month || !day) {
+      throw new Error("İstanbul tarih bilgisi oluşturulamadı");
+    }
+
+    const recurringMonth =
+      `${year}-${String(month).padStart(2, "0")}`;
     const { data: subscriptions, error: subscriptionsError } = await supabase
       .from("subscriptions")
       .select("id, user_id, title, amount, day, type")

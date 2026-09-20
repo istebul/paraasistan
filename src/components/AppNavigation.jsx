@@ -15,6 +15,7 @@ const navigationItems = [
 export default function AppNavigation({
   page,
   isPremium,
+  isAdmin,
   userName,
   email,
   onNavigate,
@@ -58,7 +59,13 @@ export default function AppNavigation({
         </div>
 
         <nav>
-          {navigationItems.map(([key, icon, label]) => (
+          {(isAdmin
+            ? [
+                ...navigationItems,
+                ["admin", "⚙", "Yönetim"],
+              ]
+            : navigationItems
+          ).map(([key, icon, label]) => (
             <button
               key={key}
               type="button"

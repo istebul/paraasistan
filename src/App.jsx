@@ -14,6 +14,9 @@ import {
 import Toast from "./components/Toast";
 import AppNavigation from "./components/AppNavigation";
 import AppHeader from "./components/AppHeader";
+import AdminPanel from "./components/AdminPanel";
+import ProCodeRedeem from "./components/ProCodeRedeem";
+import PasswordChangeForm from "./components/PasswordChangeForm";
 import TransactionForm from "./components/TransactionForm";
 import TransactionHistory from "./components/TransactionHistory";
 import GoalForm from "./components/GoalForm";
@@ -34,6 +37,9 @@ import DashboardSubscriptionsCard from "./components/DashboardSubscriptionsCard"
 import RecentTransactionsCard from "./components/RecentTransactionsCard";
 import heroImage from "./assets/hero.png";
 import "./index.css";
+
+const FINANCE_COACH_LEGAL_NOTICE =
+  "ParaAsistan AI tarafından sunulan bilgiler genel bilgilendirme ve finansal eğitim amaçlıdır. Yatırım danışmanlığı, kişiye özel yatırım tavsiyesi veya yatırım işlemi emri değildir. Yatırım kararlarınızı kendi değerlendirmenizle ve gerektiğinde yetkili yatırım kuruluşlarından profesyonel destek alarak veriniz.";
 
 const CATEGORY_OPTIONS = [
   "Genel",
@@ -56,26 +62,50 @@ const money = (value, currency = "TRY") =>
     maximumFractionDigits: 2,
   }).format(Number(value || 0));
 
+const ISTANBUL_TIME_ZONE = "Europe/Istanbul";
+
 const dateText = (value) => {
   if (!value) return "-";
 
-  const date = /^\\d{4}-\\d{2}-\\d{2}$/.test(value)
-    ? new Date(`${value}T00:00:00`)
-    : new Date(value);
+  const rawValue = String(value);
+  const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(
+    rawValue
+  );
+
+  const date = dateOnly
+    ? new Date(`${rawValue}T00:00:00+03:00`)
+    : new Date(rawValue);
 
   if (Number.isNaN(date.getTime())) return "-";
 
-  return date.toLocaleDateString("tr-TR");
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: ISTANBUL_TIME_ZONE,
+  }).format(date);
 };
 
 const today = () => {
-  const date = new Date();
-  const localTime = new Date(
-    date.getTime() -
-      date.getTimezoneOffset() * 60 * 1000
-  );
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: ISTANBUL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
 
-  return localTime.toISOString().slice(0, 10);
+  const year = parts.find(
+    (part) => part.type === "year"
+  )?.value;
+
+  const month = parts.find(
+    (part) => part.type === "month"
+  )?.value;
+
+  const day = parts.find(
+    (part) => part.type === "day"
+  )?.value;
+
+  if (!year || !month || !day) return "";
+
+  return `${year}-${month}-${day}`;
 };
 
 const monthKey = (date) => {
@@ -87,10 +117,12 @@ const currentMonth = () => today().slice(0, 7);
 
 const previousMonth = (month) => {
   const [year, monthNumber] = month.split("-").map(Number);
-  const date = new Date(year, monthNumber - 2, 1);
+  const date = new Date(
+    Date.UTC(year, monthNumber - 2, 1)
+  );
 
-  return `${date.getFullYear()}-${String(
-    date.getMonth() + 1
+  return `${date.getUTCFullYear()}-${String(
+    date.getUTCMonth() + 1
   ).padStart(2, "0")}`;
 };
 
@@ -98,25 +130,38 @@ const monthLabel = (month) => {
   if (!month) return "";
 
   const [year, monthNumber] = month.split("-").map(Number);
+  const date = new Date(
+    Date.UTC(year, monthNumber - 1, 15)
+  );
 
-  return new Date(
-    year,
-    monthNumber - 1,
-    1
-  ).toLocaleDateString("tr-TR", {
+  return new Intl.DateTimeFormat("tr-TR", {
+    timeZone: ISTANBUL_TIME_ZONE,
     month: "long",
     year: "numeric",
-  });
+  }).format(date);
 };
 
 const daysUntil = (date) => {
   if (!date) return null;
 
-  const target = new Date(`${date}T00:00:00`);
-  const now = new Date();
+  const target = new Date(
+    `${String(date)}T00:00:00+03:00`
+  );
 
-  target.setHours(0, 0, 0, 0);
-  now.setHours(0, 0, 0, 0);
+  const todayValue = today();
+
+  if (!todayValue) return null;
+
+  const now = new Date(
+    `${todayValue}T00:00:00+03:00`
+  );
+
+  if (
+    Number.isNaN(target.getTime()) ||
+    Number.isNaN(now.getTime())
+  ) {
+    return null;
+  }
 
   return Math.ceil(
     (target.getTime() - now.getTime()) /
@@ -171,8 +216,9 @@ function AuthScreen() {
         if (error) throw error;
       }
     } catch (error) {
+      console.error("Kimlik doğrulama hatası:", error);
       setMessage(
-        error.message || "Bir hata oluştu."
+        "İşlem gerçekleştirilemedi. Lütfen bilgilerinizi kontrol edip tekrar deneyin."
       );
     } finally {
       setLoading(false);
@@ -325,6 +371,10 @@ function App() {
   const [profile, setProfile] = useState(null);
   const [membership, setMembership] =
     useState(null);
+  const [isAdmin, setIsAdmin] =
+    useState(false);
+  const [currentTime, setCurrentTime] =
+    useState(0);
 
   const [loadingData, setLoadingData] =
     useState(false);
@@ -471,6 +521,51 @@ function App() {
       subscription.unsubscribe();
     };
   }, []);
+
+  useEffect(() => {
+    const updateCurrentTime = () => {
+      setCurrentTime(Date.now());
+    };
+
+    updateCurrentTime();
+
+    const intervalId = window.setInterval(
+      updateCurrentTime,
+      60 * 1000
+    );
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const checkAdminStatus = async () => {
+      if (!userId) {
+        setIsAdmin(false);
+        return;
+      }
+
+      const { data, error } =
+        await supabase.rpc(
+          "is_current_user_admin"
+        );
+
+      if (!mounted) return;
+
+      setIsAdmin(
+        !error && data === true
+      );
+    };
+
+    checkAdminStatus();
+
+    return () => {
+      mounted = false;
+    };
+  }, [userId]);
 
   const loadData = useCallback(async () => {
     if (!userId) return;
@@ -631,11 +726,10 @@ function App() {
         membershipResult.data || null
       );
     } catch (error) {
-      console.error(error);
+      console.error("Veriler yüklenemedi:", error);
 
       showToast(
-        error.message ||
-          "Veriler yüklenemedi.",
+        "Veriler yüklenemedi. Lütfen tekrar deneyin.",
         "error"
       );
     } finally {
@@ -659,11 +753,27 @@ function App() {
     session?.user?.email?.split("@")[0] ||
     "Kullanıcı";
 
+  const membershipExpiry =
+    membership?.expires_at
+      ? new Date(
+          membership.expires_at
+        ).getTime()
+      : null;
+
+  const membershipNotExpired =
+    !membershipExpiry ||
+    currentTime === 0 ||
+    (
+      Number.isFinite(membershipExpiry) &&
+      membershipExpiry > currentTime
+    );
+
   const isPremium =
     membership?.plan === "premium" &&
     ["active", "trialing"].includes(
       membership?.status
-    );
+    ) &&
+    membershipNotExpired;
 
   const selectedMonthTransactions =
     useMemo(() => {
@@ -1235,7 +1345,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("İşlem ekleme hatası:", error);
+      showToast("İşlem eklenemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1307,7 +1418,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("İşlem güncelleme hatası:", error);
+      showToast("İşlem güncellenemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1342,7 +1454,8 @@ function App() {
         .eq("id", id);
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("İşlem silme hatası:", error);
+      showToast("İşlem silinemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1388,7 +1501,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Hedef ekleme hatası:", error);
+      showToast("Hedef eklenemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1421,7 +1535,8 @@ function App() {
         .eq("id", id);
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Hedef silme hatası:", error);
+      showToast("Hedef silinemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1487,8 +1602,12 @@ function App() {
       .single();
 
     if (contributionError) {
+      console.error(
+        "Hedef katkısı kaydetme hatası:",
+        contributionError
+      );
       showToast(
-        contributionError.message,
+        "Hedef katkısı kaydedilemedi. Lütfen tekrar deneyin.",
         "error"
       );
       return;
@@ -1518,7 +1637,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Hedef katkısı hatası:", error);
+      showToast("Hedef katkısı kaydedilemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1577,7 +1697,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Abonelik ekleme hatası:", error);
+      showToast("Abonelik eklenemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1612,7 +1733,8 @@ function App() {
         .eq("id", id);
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Abonelik silme hatası:", error);
+      showToast("Abonelik silinemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1660,7 +1782,8 @@ function App() {
         .single();
 
     if (error) {
-      showToast(error.message, "error");
+      console.error("Kategori bütçesi hatası:", error);
+      showToast("Kategori bütçesi kaydedilemedi. Lütfen tekrar deneyin.", "error");
       return;
     }
 
@@ -1727,11 +1850,13 @@ function App() {
         "Profil bilgilerin kaydedildi."
       );
     } catch (error) {
-      console.error(error);
+      console.error(
+        "Profil bilgileri kaydedilemedi:",
+        error
+      );
 
       showToast(
-        error.message ||
-          "Profil bilgileri kaydedilemedi.",
+        "Profil bilgileri kaydedilemedi. Lütfen tekrar deneyin.",
         "error"
       );
     } finally {
@@ -1782,11 +1907,13 @@ function App() {
         ...history,
       ].slice(0, 5));
     } catch (error) {
-      console.error(error);
+      console.error(
+        "AI Finans Koçu hatası:",
+        error
+      );
 
       setCoachError(
-        error.message ||
-          "AI Finans Koçu ile bağlantı kurulamadı."
+        "AI Finans Koçu ile bağlantı kurulamadı. Lütfen tekrar deneyin."
       );
     } finally {
       setCoachLoading(false);
@@ -1831,6 +1958,7 @@ function App() {
       <AppNavigation
         page={page}
         isPremium={isPremium}
+        isAdmin={isAdmin}
         userName={userName}
         email={session.user.email}
         onNavigate={navigate}
@@ -1845,6 +1973,12 @@ function App() {
           loadingData={loadingData}
           onMonthChange={setSelectedMonth}
         />
+
+        {page === "admin" && (
+          <AdminPanel
+            userCount={0}
+          />
+        )}
 
         {/* DASHBOARD */}
 
@@ -3171,6 +3305,25 @@ function App() {
               </div>
             </div>
 
+            <div
+              className="coach-legal-notice"
+              role="note"
+              aria-label="Yasal Uyarı"
+            >
+              <div
+                className="coach-legal-notice-icon"
+                aria-hidden="true"
+              >
+                ⓘ
+              </div>
+              <div className="coach-legal-notice-content">
+                <strong>Yasal Uyarı</strong>
+                <p>
+                  {FINANCE_COACH_LEGAL_NOTICE}
+                </p>
+              </div>
+            </div>
+
             {!isPremium && (
               <div className="panel">
                 <h3>
@@ -3636,10 +3789,19 @@ function App() {
                 </strong>
               </div>
             </div>
+            <PasswordChangeForm />
           </section>
         )}
 
         {/* PREMIUM */}
+
+        <ProCodeRedeem
+          visible={
+            page === "premium" &&
+            !isPremium
+          }
+          onRedeemed={loadData}
+        />
 
         {page === "premium" && (
           <section className="coach-page">

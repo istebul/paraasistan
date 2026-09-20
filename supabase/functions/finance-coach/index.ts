@@ -1,15 +1,47 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+const PRODUCTION_ORIGIN =
+  "https://paraasistan.istebul.com";
+
+const LOCAL_ORIGINS = new Set([
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://localhost:5175",
+  "http://localhost:5176",
+  "http://localhost:5177",
+  "http://localhost:5178",
+]);
+
+const getCorsHeaders = (origin: string | null) => {
+  const allowedOrigin =
+    origin === PRODUCTION_ORIGIN ||
+    (origin !== null && LOCAL_ORIGINS.has(origin))
+      ? origin
+      : null;
+
+  return {
+    ...(allowedOrigin
+      ? { "Access-Control-Allow-Origin": allowedOrigin }
+      : {}),
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods":
+      "POST, OPTIONS",
+    Vary: "Origin",
+  };
 };
 
 const MAX_QUESTION_LENGTH = 1000;
 const OPENAI_TIMEOUT_MS = 30_000;
 
+const LEGAL_NOTICE =
+  "ParaAsistan AI tarafından sunulan bilgiler genel bilgilendirme ve finansal eğitim amaçlıdır. Yatırım danışmanlığı, kişiye özel yatırım tavsiyesi veya yatırım işlemi emri değildir. Yatırım kararlarınızı kendi değerlendirmenizle ve gerektiğinde yetkili yatırım kuruluşlarından profesyonel destek alarak veriniz.";
+
 Deno.serve(async (req) => {
+  const corsHeaders = getCorsHeaders(
+    req.headers.get("Origin")
+  );
+
   if (req.method === "OPTIONS") {
     return new Response("ok", {
       headers: corsHeaders,
@@ -103,12 +135,12 @@ Deno.serve(async (req) => {
     if (userError) {
       console.error(
         "Supabase kullanıcı doğrulama hatası:",
-        userError.message
+        userError
       );
 
       return new Response(
         JSON.stringify({
-          error: `Kullanıcı doğrulanamadı: ${userError.message}`,
+          error: "Kullanıcı doğrulanamadı.",
         }),
         {
           status: 401,
@@ -144,14 +176,14 @@ Deno.serve(async (req) => {
     const { data: membership, error: membershipError } =
       await supabase
         .from("memberships")
-        .select("plan, status")
+        .select("plan, status, expires_at")
         .eq("user_id", userId)
         .maybeSingle();
 
     if (membershipError) {
       console.error(
         "Membership doğrulama hatası:",
-        membershipError.message
+        membershipError
       );
 
       return new Response(
@@ -168,11 +200,26 @@ Deno.serve(async (req) => {
       );
     }
 
+    const membershipExpiry =
+      membership?.expires_at
+        ? new Date(
+            membership.expires_at
+          ).getTime()
+        : null;
+
+    const membershipNotExpired =
+      !membershipExpiry ||
+      (
+        Number.isFinite(membershipExpiry) &&
+        membershipExpiry > Date.now()
+      );
+
     const hasActivePremium =
       membership?.plan === "premium" &&
       ["active", "trialing"].includes(
         membership.status
-      );
+      ) &&
+      membershipNotExpired;
 
     if (!hasActivePremium) {
       return new Response(
@@ -249,27 +296,35 @@ Deno.serve(async (req) => {
     ]);
 
     if (transactionsResult.error) {
-      throw new Error(
-        `Transactions hatası: ${transactionsResult.error.message}`
+      console.error(
+        "Transactions sorgu hatası:",
+        transactionsResult.error
       );
+      throw new Error("Finans verileri yüklenemedi.");
     }
 
     if (goalsResult.error) {
-      throw new Error(
-        `Goals hatası: ${goalsResult.error.message}`
+      console.error(
+        "Goals sorgu hatası:",
+        goalsResult.error
       );
+      throw new Error("Finans verileri yüklenemedi.");
     }
 
     if (subscriptionsResult.error) {
-      throw new Error(
-        `Subscriptions hatası: ${subscriptionsResult.error.message}`
+      console.error(
+        "Subscriptions sorgu hatası:",
+        subscriptionsResult.error
       );
+      throw new Error("Finans verileri yüklenemedi.");
     }
 
     if (budgetResult.error) {
-      throw new Error(
-        `Budget hatası: ${budgetResult.error.message}`
+      console.error(
+        "Budget sorgu hatası:",
+        budgetResult.error
       );
+      throw new Error("Finans verileri yüklenemedi.");
     }
 
     const transactions = transactionsResult.data || [];
@@ -278,21 +333,48 @@ Deno.serve(async (req) => {
     const budget = budgetResult.data || null;
 
     // Bu ay ve önceki ay işlemleri
-    const currentMonth =
-      new Date().toISOString().slice(0, 7);
+    const istanbulYearMonth = () => {
+      const parts = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Europe/Istanbul",
+        year: "numeric",
+        month: "2-digit",
+      }).formatToParts(new Date());
+
+      const year = parts.find(
+        (part) => part.type === "year"
+      )?.value;
+
+      const month = parts.find(
+        (part) => part.type === "month"
+      )?.value;
+
+      if (!year || !month) {
+        throw new Error(
+          "İstanbul tarih bilgisi oluşturulamadı"
+        );
+      }
+
+      return `${year}-${month}`;
+    };
+
+    const currentMonth = istanbulYearMonth();
 
     const [year, monthNumber] =
       currentMonth.split("-").map(Number);
 
-    const previousMonthDate = new Date(
-      year,
-      monthNumber - 2,
-      1
-    );
+    const previousMonthYear =
+      monthNumber === 1
+        ? year - 1
+        : year;
+
+    const previousMonthNumber =
+      monthNumber === 1
+        ? 12
+        : monthNumber - 1;
 
     const previousMonth =
-      `${previousMonthDate.getFullYear()}-${String(
-        previousMonthDate.getMonth() + 1
+      `${previousMonthYear}-${String(
+        previousMonthNumber
       ).padStart(2, "0")}`;
 
     const currentMonthTransactions =
@@ -382,6 +464,47 @@ Deno.serve(async (req) => {
       0
     );
 
+    const totalGoalRemaining = Math.max(
+      totalGoalTarget - totalGoalSaved,
+      0
+    );
+
+    const goalProgressPercent =
+      totalGoalTarget > 0
+        ? (totalGoalSaved / totalGoalTarget) * 100
+        : 0;
+
+    const monthlyNetCashFlow = income - expense;
+
+    const budgetAmount = budget
+      ? Number(budget.amount || 0)
+      : null;
+
+    const budgetUsagePercent =
+      budgetAmount && budgetAmount > 0
+        ? (expense / budgetAmount) * 100
+        : null;
+
+    const budgetRemainingCapacity =
+      budgetAmount !== null
+        ? Math.max(budgetAmount - expense, 0)
+        : null;
+
+    const goalMonthsAtCurrentNetFlow =
+      totalGoalRemaining > 0 && monthlyNetCashFlow > 0
+        ? Math.ceil(totalGoalRemaining / monthlyNetCashFlow)
+        : null;
+
+    const goalMonthsAt50PercentNetFlow =
+      totalGoalRemaining > 0 && monthlyNetCashFlow > 0
+        ? Math.ceil(totalGoalRemaining / (monthlyNetCashFlow * 0.5))
+        : null;
+
+    const goalMonthsAt70PercentNetFlow =
+      totalGoalRemaining > 0 && monthlyNetCashFlow > 0
+        ? Math.ceil(totalGoalRemaining / (monthlyNetCashFlow * 0.7))
+        : null;
+
     // Abonelikler
     const monthlySubscriptionExpense =
       subscriptions.reduce(
@@ -411,6 +534,7 @@ Deno.serve(async (req) => {
       income,
       expense,
       balance,
+      monthlyNetCashFlow,
       categoryTotals,
 
       previousMonth: {
@@ -424,6 +548,11 @@ Deno.serve(async (req) => {
         count: goals.length,
         target: totalGoalTarget,
         saved: totalGoalSaved,
+        monthsAtCurrentNetFlow: goalMonthsAtCurrentNetFlow,
+        monthsAt50PercentNetFlow: goalMonthsAt50PercentNetFlow,
+        monthsAt70PercentNetFlow: goalMonthsAt70PercentNetFlow,
+        remaining: totalGoalRemaining,
+        progressPercent: goalProgressPercent,
       },
 
       subscriptions: {
@@ -433,10 +562,9 @@ Deno.serve(async (req) => {
         monthlyNet: monthlySubscriptionNet,
       },
 
-      budget: budget
-        ? Number(budget.amount || 0)
-        : null,
-
+      budget: budgetAmount,
+      budgetUsagePercent,
+      budgetRemainingCapacity,
       transactionCount:
         transactions.length,
     };
@@ -445,17 +573,17 @@ Deno.serve(async (req) => {
 
     // OpenAI API anahtarı
     const openaiKey =
-      Deno.env.get("OPENAI_API_KEY");
+      Deno.env.get("GROQ_API_KEY");
 
     if (!openaiKey) {
       console.error(
-        "OPENAI_API_KEY bulunamadı"
+        "GROQ_API_KEY bulunamadı"
       );
 
       return new Response(
         JSON.stringify({
           error:
-            "OPENAI_API_KEY bulunamadı",
+            "GROQ_API_KEY bulunamadı",
         }),
         {
           status: 500,
@@ -483,7 +611,7 @@ Deno.serve(async (req) => {
 
     try {
       openaiResponse = await fetch(
-        "https://api.openai.com/v1/responses",
+        "https://api.groq.com/openai/v1/responses",
         {
           method: "POST",
 
@@ -498,14 +626,14 @@ Deno.serve(async (req) => {
           signal: controller.signal,
 
           body: JSON.stringify({
-            model: "gpt-5-mini",
+            model: "openai/gpt-oss-20b",
 
             input: [
               {
                 role: "system",
 
                 content:
-                  "Sen ParaAsistan uygulamasının kişisel finans koçusun. Kullanıcının sağlanan gerçek finansal verilerini analiz et ve sorusuna doğrudan cevap ver. Türkçe, net, sakin, anlaşılır ve uygulanabilir konuş. Verilerde bulunmayan bilgileri varsayma; belirsiz veya eksik veri varsa bunu açıkça belirt. Gelir, gider, bakiye ve abonelik gelir/giderlerini birbirine karıştırma. Bütçe, harcama kategorileri, hedefler ve önceki ay verileri mevcutsa bunları değerlendirmende kullan. Rakamları doğru kullan ve mümkün olduğunda hesaplamalarını verilen verilerle destekle. Yatırım ürünü seçimi veya kişiselleştirilmiş yatırım tavsiyesi vermek yerine bütçe yönetimi, tasarruf, harcama kontrolü, hedefler ve finansal planlama konularında yardımcı ol.",
+                  "Sen ParaAsistan uygulamasının kişisel finans koçusun. Kullanıcının sağlanan gerçek finansal verilerini analiz et ve sorusuna doğrudan cevap ver. Türkçe, net, sakin, anlaşılır ve uygulanabilir konuş. Verilerde bulunmayan bilgileri varsayma; belirsiz veya eksik veri varsa bunu açıkça belirt. Gelir, gider, bakiye ve abonelik gelir/giderlerini birbirine karıştırma. Bütçe, harcama kategorileri, hedefler ve önceki ay verileri mevcutsa bunları değerlendirmende kullan. Rakamları doğru kullan ve mümkün olduğunda hesaplamalarını verilen verilerle destekle. monthlyNetCashFlow yalnızca ilgili ayın gelir eksi gider değeridir ve mevcut birikim anlamına gelmez. goals.saved hedeflerde zaten birikmiş mevcut tutardır ve monthlyNetCashFlow ile toplanmamalıdır. goals.remaining hedef için kalan tutardır. Hedef süresi hesaplanırken kalan hedef tutarı üzerinden hesap yapılmalı ve aylık net akışın tamamının düzenli olarak hedefe ayrıldığı varsayımı açıkça belirtilmelidir. Mevcut ay tamamlanmamışsa kesin süre tahmini yapılmamalıdır. Kullanıcı açıkça yatırım konusu sormadıkça yatırım aracı, fon, hisse, kripto, mevduat veya portföy dağılımı önerme; al, sat, tut gibi işlem yönlendirmeleri yapma ve herhangi bir yüzdeyi yatırım amacıyla önerme. Kullanıcı yatırım konusu sorduğunda dahi kişiye özel yatırım tavsiyesi, ürün seçimi veya risk profiline göre portföy yönlendirmesi yapma; yalnızca genel eğitim amaçlı bilgi ver. Kullanıcının verilerinde bulunmayan harcama limiti, tasarruf oranı, bütçe sınırı veya hedef rakam uydurma. Yalnızca sağlanan finansal verilere dayalı bütçe yönetimi, tasarruf, harcama kontrolü, hedefler ve finansal planlama konusunda yardımcı ol. Hedef süresi için financialSummary.goals içindeki monthsAtCurrentNetFlow, monthsAt50PercentNetFlow ve monthsAt70PercentNetFlow alanlarını esas al; bu alanlar kod tarafından hesaplanır. Kendi alternatif aritmetik hesabınla bu değerleri değiştirme. Özellikle yüzde 50-70 katkı senaryolarında süreyi olduğundan kısa gösterme ve veri tarafından desteklenmeyen bir süre uydurma. Somut önerilerde yalnızca financialSummary içindeki mevcut rakamları ve kod tarafından hesaplanan alanları kullan. Kullanıcının verilerinde bulunmayan yeni TL tutarı, yüzde, oran, bütçe sınırı, tasarruf hedefi, ek gelir hedefi veya süre üretme. Bir öneri için sayısal değer vermek zorunlu değilse sayı kullanma. Sayısal bir senaryo ancak kullanıcı özellikle senaryo isterse oluşturulabilir; böyle durumda bunun örnek/varsayımsal olduğunu açıkça belirt ve gerçek kullanıcı verisi gibi sunma. Verilen bir değerden hesaplama yapıyorsan sonucu matematiksel olarak kontrol et. Kullanıcının mevcut bütçe limitini yeni bir yüzdeyle sınırlama veya verilmeyen bir tasarruf oranı belirleme. expense yalnızca transactions içindeki giderlerin toplamıdır ve subscription giderlerini expense değerine ekleme. Abonelik giderleri subscriptions alanında ayrı değerlendirilir. budgetRemainingCapacity yalnızca kullanılmayan bütçe harcama kapasitesidir; gelir, bakiye, tasarruf veya hedefe aktarılabilir nakit değildir. Kullanılmayan bütçeyi hedefe aktarılmış veya aktarılabilir para gibi gösterme. Bütçe kullanımında financialSummary.budgetUsagePercent değerini kullan.",
               },
 
               {
@@ -528,14 +656,17 @@ Bu verilere ve kullanıcının sorusuna göre kişiselleştirilmiş bir finansal
 
 Şu sırayı izle:
 
-1. Mevcut durumu 2-4 cümleyle, mümkün olduğunca gerçek rakamları kullanarak özetle.
+1. Mevcut durumu 2-4 cümleyle, yalnızca financialSummary içindeki gerçek değerleri kullanarak özetle. expense ile monthlySubscriptionExpense değerlerini toplama. Abonelikleri ayrı göster. budgetRemainingCapacity değerini nakit veya hedefe aktarılabilir para gibi sunma.
 2. Kullanıcının sorusuna doğrudan cevap ver.
-3. En önemli 3-5 öneriyi önem sırasına göre ver. Her öneri mümkün olduğunca somut ve uygulanabilir olsun.
+3. En önemli 3-5 öneriyi önem sırasına göre ver. Öneriler gerçek finansal verilere dayansın. Verilmeyen TL tutarı, yüzde, oran veya yeni limit uydurma; sayısal bir öneri için mevcut financialSummary değerlerini kullan.
 4. Önceki ay verisi soruyla ilgiliyse değişimi belirt.
-5. Bütçe verisi varsa bütçe kullanımını ve varsa aşımı dikkate al.
-6. Hedefler varsa toplam ilerlemeyi ve hedeflerle ilgili önemli noktaları dikkate al.
-7. Aboneliklerde aylık gider, aylık gelir ve net etki değerlerini ayrı değerlendir.
-8. Veriler yeterli değilse tahmin yapmak yerine hangi bilginin eksik olduğunu belirt.
+5. Bütçe verisi varsa financialSummary.budgetUsagePercent değerini kullan. budgetRemainingCapacity değerini yalnızca kullanılmayan harcama kapasitesi olarak açıkla; bunu gelir, bakiye, tasarruf veya hedefe aktarılabilir nakit olarak yorumlama.
+                  6. Hedefler varsa toplam ilerlemeyi, mevcut birikimi (goals.saved), kalan tutarı (goals.remaining) ve ilerleme yüzdesini (goals.progressPercent) ayrı değerlendir. goals.saved değerini aylık gelir-gider farkıyla toplama.
+
+                  7. Hedefe ulaşma süresi sorulursa financialSummary.goals içindeki hazır ay değerlerini kullan. Tamamı için monthsAtCurrentNetFlow, %50 katkı için monthsAt50PercentNetFlow, %70 katkı için monthsAt70PercentNetFlow alanlarını esas al. Yeni ve daha kısa bir süre hesaplama. Mevcut ay tamamlanmamışsa bu değerleri tahmini planlama olarak sun.
+
+                  8. Aboneliklerde aylık gider, aylık gelir ve net etki değerlerini ayrı değerlendir.
+9. Veriler yeterli değilse tahmin yapmak yerine hangi bilginin eksik olduğunu belirt.
 
 Gereksiz uzunlukta yazma. Kullanıcıya anlaşılır, pratik ve gerçek verilerine dayalı bir cevap ver.
 
@@ -578,31 +709,11 @@ Cevabı Türkçe yaz.
       openaiResponse.status
     );
 
-    // OpenAI hata verdi
+    // AI servisi hata verdi
     if (!openaiResponse.ok) {
       console.error(
-        "OPENAI API HAM CEVAP:",
-        responseText
-      );
-
-      let errorMessage =
-        responseText;
-
-      try {
-        const errorJson =
-          JSON.parse(responseText);
-
-        errorMessage =
-          errorJson?.error?.message ||
-          errorJson?.message ||
-          responseText;
-      } catch {
-        // Ham cevap kullanılacak
-      }
-
-      console.error(
-        "OPENAI API HATASI:",
-        errorMessage
+        "AI servisi HTTP hatası:",
+        openaiResponse.status
       );
 
       return new Response(
@@ -632,8 +743,8 @@ Cevabı Türkçe yaz.
         JSON.parse(responseText);
     } catch {
       console.error(
-        "OpenAI JSON parse hatası:",
-        responseText
+        "AI servis cevabı JSON olarak okunamadı:",
+        openaiResponse.status
       );
 
       return new Response(
@@ -695,10 +806,8 @@ Cevabı Türkçe yaz.
 
     if (!answer) {
       console.error(
-        "OpenAI cevabında metin bulunamadı:",
-        JSON.stringify(
-          openaiData
-        )
+        "AI servis cevabında metin bulunamadı:",
+        openaiResponse.status
       );
 
       return new Response(
@@ -725,6 +834,7 @@ Cevabı Türkçe yaz.
     return new Response(
       JSON.stringify({
         answer,
+        legalNotice: LEGAL_NOTICE,
         summary:
           financialSummary,
       }),
@@ -739,19 +849,14 @@ Cevabı Türkçe yaz.
       }
     );
   } catch (error) {
-    const message =
-      error instanceof Error
-        ? error.message
-        : String(error);
-
     console.error(
       "FINANCE COACH GENEL HATA:",
-      message
+      error
     );
 
     return new Response(
       JSON.stringify({
-        error: message,
+        error: "Finans koçu şu anda kullanılamıyor",
       }),
       {
         status: 500,

@@ -64,3 +64,26 @@ test("finance totals preserve a negative balance", () => {
     { income: 1000, expense: 1400, balance: -400 }
   );
 });
+
+test("transaction validation rejects non-finite amount", () => {
+  assert.equal(
+    validateTransaction({
+      title: "Market",
+      amount: Infinity,
+      date: "2026-09-15",
+    }),
+    "İşlem tutarı 0'dan büyük olmalı."
+  );
+});
+
+test("finance totals ignore non-finite amounts", () => {
+  assert.deepEqual(
+    calculateTotals([
+      { type: "income", amount: 5000 },
+      { type: "income", amount: Infinity },
+      { type: "expense", amount: 1200 },
+      { type: "expense", amount: NaN },
+    ]),
+    { income: 5000, expense: 1200, balance: 3800 }
+  );
+});

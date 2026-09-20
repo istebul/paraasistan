@@ -13,14 +13,28 @@ export default function TransactionForm({
   };
 
   const setToday = () => {
-    const today = new Date();
-    const localDate = new Date(
-      today.getTime() - today.getTimezoneOffset() * 60000
-    )
-      .toISOString()
-      .slice(0, 10);
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Europe/Istanbul",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
 
-    update("date", localDate);
+    const year = parts.find(
+      (part) => part.type === "year"
+    )?.value;
+
+    const month = parts.find(
+      (part) => part.type === "month"
+    )?.value;
+
+    const day = parts.find(
+      (part) => part.type === "day"
+    )?.value;
+
+    if (!year || !month || !day) return;
+
+    update("date", `${year}-${month}-${day}`);
   };
 
   return (

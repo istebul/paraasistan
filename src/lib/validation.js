@@ -1,7 +1,7 @@
 const positiveAmount = (value, label) => {
   const amount = Number(value);
 
-  if (!value || Number.isNaN(amount) || amount <= 0) {
+  if (!value || !Number.isFinite(amount) || amount <= 0) {
     return `${label} 0'dan büyük olmalı.`;
   }
 
@@ -23,7 +23,7 @@ export const validateGoal = (form) => {
   const saved = Number(form.saved || 0);
   const target = Number(form.target);
 
-  if (Number.isNaN(saved) || saved < 0) {
+  if (!Number.isFinite(saved) || saved < 0) {
     return "Birikmiş tutar negatif olamaz.";
   }
 
@@ -54,7 +54,7 @@ export const validateSubscription = (form) => {
 export const validateBudget = (value) => {
   const amount = Number(value);
 
-  if (Number.isNaN(amount) || amount < 0) {
+  if (!Number.isFinite(amount) || amount < 0) {
     return "Bütçe 0 veya daha büyük olmalı.";
   }
 

@@ -10,6 +10,7 @@ const pageTitles = {
   coach: "AI Finans Koçu",
   profile: "Profilim",
   premium: "ParaAsistan Premium",
+  admin: "Yönetim Paneli",
 };
 
 export default function AppHeader({
@@ -32,6 +33,8 @@ export default function AppHeader({
       ? "Hesap ve kişisel bilgilerini yönet."
       : page === "premium"
       ? "Finansal deneyimini bir üst seviyeye taşı."
+      : page === "admin"
+      ? "Kullanıcılar ve Pro erişimlerini güvenle yönet."
       : "Finansal durumunu kolayca yönet.";
 
   return (
