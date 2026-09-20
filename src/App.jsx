@@ -3804,7 +3804,7 @@ function App() {
         />
 
         {page === "premium" && (
-          <section className="coach-page">
+          <section className="coach-page premium-page">
             <div className="panel budget-hero">
               <div className="coach-icon big">
                 ★
