@@ -475,26 +475,31 @@ export default function AdminPanel({
             />
           </label>
 
-          <div>
-            <strong>Pro özellikleri</strong>
+          <div className="admin-feature-section">
+            <div className="admin-feature-heading">
+              <div>
+                <strong>Pro özellikleri</strong>
+                <span>
+                  Kullanıcıya verilecek Pro özelliklerini seç.
+                </span>
+              </div>
 
-            <div
-              style={{
-                display: "grid",
-                gap: "10px",
-                marginTop: "10px",
-              }}
-            >
+              <span className="admin-feature-badge">
+                Premium
+              </span>
+            </div>
+
+            <div className="admin-feature-grid">
               {Object.entries(
                 featureLabels
               ).map(([key, label]) => (
                 <label
                   key={key}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                  }}
+                  className={`admin-feature-option${
+                    features[key]
+                      ? " is-selected"
+                      : ""
+                  }`}
                 >
                   <input
                     type="checkbox"
@@ -510,12 +515,27 @@ export default function AdminPanel({
                     }
                     disabled={saving}
                   />
-                  <span>{label}</span>
+
+                  <span className="admin-feature-check">
+                    ✓
+                  </span>
+
+                  <span className="admin-feature-copy">
+                    <strong>{label}</strong>
+                    <span>
+                      {key === "finance_coach"
+                        ? "AI destekli finansal analiz ve yönlendirme"
+                        : key === "advanced_reports"
+                          ? "Daha detaylı rapor ve finansal görünüm"
+                          : key === "advanced_budget"
+                            ? "Gelişmiş bütçe ve kategori kontrolü"
+                            : "Premium kullanıcı deneyimi ve dashboard"}
+                    </span>
+                  </span>
                 </label>
               ))}
             </div>
           </div>
-
           {selectedUser && (
             <div
               style={{
