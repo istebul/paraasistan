@@ -35,6 +35,11 @@ import DashboardSpendingCard from "./components/DashboardSpendingCard";
 import DashboardGoalsCard from "./components/DashboardGoalsCard";
 import DashboardSubscriptionsCard from "./components/DashboardSubscriptionsCard";
 import RecentTransactionsCard from "./components/RecentTransactionsCard";
+import DailyControlCenter from "./components/DailyControlCenter";
+import QuickTransaction from "./components/QuickTransaction";
+import DailyAlerts from "./components/DailyAlerts";
+import DashboardPreferences from "./components/DashboardPreferences";
+import DashboardCoach from "./components/DashboardCoach";
 import heroImage from "./assets/hero.png";
 import "./index.css";
 
@@ -417,6 +422,62 @@ function App() {
     saved: "",
     deadline: "",
   });
+
+  const defaultDashboardPreferences = {
+    dailyControl: true,
+    alerts: true,
+    quickTransaction: true,
+    coach: true,
+    health: true,
+    budget: true,
+    spending: true,
+    insights: true,
+    goals: true,
+    subscriptions: true,
+    recent: true,
+  };
+
+  const [dashboardPreferences, setDashboardPreferences] =
+    useState(() => {
+      try {
+        const saved = localStorage.getItem(
+          "paraasistan-dashboard-preferences-v1"
+        );
+
+        if (!saved) {
+          return defaultDashboardPreferences;
+        }
+
+        return {
+          ...defaultDashboardPreferences,
+          ...JSON.parse(saved),
+        };
+      } catch {
+        return defaultDashboardPreferences;
+      }
+    });
+
+  const updateDashboardPreferences = (
+    nextPreferences
+  ) => {
+    setDashboardPreferences(nextPreferences);
+
+    try {
+      localStorage.setItem(
+        "paraasistan-dashboard-preferences-v1",
+        JSON.stringify(nextPreferences)
+      );
+    } catch {
+      // Tarayıcı depolaması kullanılamıyorsa uygulama çalışmaya devam eder.
+    }
+  };
+
+  const resetDashboardPreferences = () => {
+    updateDashboardPreferences(
+      defaultDashboardPreferences
+    );
+  };
+
 
   const [contributionGoal, setContributionGoal] = useState(null);
   const [contributionAmount, setContributionAmount] = useState("");
@@ -2019,6 +2080,62 @@ function App() {
               </p>
             </section>
 
+                        <DashboardPreferences
+              preferences={dashboardPreferences}
+              onChange={updateDashboardPreferences}
+              onReset={resetDashboardPreferences}
+            />
+
+{dashboardPreferences.dailyControl && (
+<DailyControlCenter
+              month={monthLabel(selectedMonth)}
+              totals={totals}
+              budgetUsage={budgetUsage}
+              budgetRemaining={budgetRemaining}
+              goals={goals}
+              subscriptions={subscriptions}
+              financialInsights={financialInsights}
+              currency={currency}
+              money={money}
+              onNavigate={navigate}
+            />
+)}
+
+                        {dashboardPreferences.alerts && (
+<DailyAlerts
+              totals={totals}
+              budgetUsage={budgetUsage}
+              budgetRemaining={budgetRemaining}
+              expenseChange={expenseChange}
+              savingsRate={savingsRate}
+              goals={goals}
+              subscriptions={subscriptions}
+              currency={currency}
+              money={money}
+              onNavigate={navigate}
+            />
+            )}
+
+                        {dashboardPreferences.quickTransaction && (
+<QuickTransaction
+              form={transactionForm}
+              categories={CATEGORY_OPTIONS}
+              onChange={setTransactionForm}
+              onSubmit={addTransaction}
+            />
+            )}
+
+            {dashboardPreferences.coach && (
+              <DashboardCoach
+                isPremium={isPremium}
+                coachAnswer={coachAnswer}
+                coachLoading={coachLoading}
+                coachError={coachError}
+                onAsk={askCoach}
+                onNavigate={navigate}
+              />
+            )}
+
             <DashboardStats
               totals={totals}
               currency={currency}
@@ -2035,7 +2152,8 @@ function App() {
                 marginBottom: "18px",
               }}
             >
-              <DashboardHealthCard
+                            {dashboardPreferences.health && (
+<DashboardHealthCard
                 score={financialHealth}
                 label={healthLabel}
                 message={healthMessage}
@@ -2043,8 +2161,10 @@ function App() {
                 budgetUsage={budgetUsage}
                 goals={goals}
               />
+              )}
 
-              <DashboardBudgetCard
+                            {dashboardPreferences.budget && (
+<DashboardBudgetCard
                 month={monthLabel(
                   selectedMonth
                 )}
@@ -2053,15 +2173,18 @@ function App() {
                 currency={currency}
                 money={money}
               />
+              )}
             </section>
 
-            <section
+                        {dashboardPreferences.insights && (
+<section
               className="dashboard-grid"
               style={{
                 marginBottom: "18px",
               }}
             >
-              <DashboardSpendingCard
+                            {dashboardPreferences.spending && (
+<DashboardSpendingCard
                 month={monthLabel(
                   selectedMonth
                 )}
@@ -2078,6 +2201,7 @@ function App() {
                   exportTransactions
                 }
               />
+              )}
 
               <div className="panel">
                 <div className="panel-header">
@@ -2210,6 +2334,7 @@ function App() {
                 </div>
               </div>
             </section>
+            )}
 
             <section
               className="dashboard-grid"
@@ -2217,7 +2342,8 @@ function App() {
                 marginBottom: "18px",
               }}
             >
-              <DashboardGoalsCard
+                            {dashboardPreferences.goals && (
+<DashboardGoalsCard
                 goals={goals}
                 currency={currency}
                 money={money}
@@ -2225,8 +2351,10 @@ function App() {
                   navigate("goals")
                 }
               />
+              )}
 
-              <DashboardSubscriptionsCard
+                            {dashboardPreferences.subscriptions && (
+<DashboardSubscriptionsCard
                 items={subscriptions}
                 total={subscriptionTotal}
                 currency={currency}
@@ -2237,9 +2365,11 @@ function App() {
                   )
                 }
               />
+              )}
             </section>
 
-            <RecentTransactionsCard
+                        {dashboardPreferences.recent && (
+<RecentTransactionsCard
               transactions={
                 selectedMonthTransactions
               }
@@ -2250,6 +2380,7 @@ function App() {
                 navigate("transactions")
               }
             />
+            )}
           </>
         )}
 
