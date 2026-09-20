@@ -2906,3 +2906,158 @@ textarea:focus-visible {
     gap: 6px;
   }
 }
+
+/* =========================================================
+   PARAASISTAN - ÖZET KARTLARI RESPONSIVE TASARIM
+   ========================================================= */
+
+.health-indicator {
+  min-width: 0;
+  padding: 18px;
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.health-indicator small {
+  display: block;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.health-indicator strong {
+  display: block;
+  font-size: 20px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* Tablet */
+@media (max-width: 900px) {
+  .health-indicator {
+    padding: 16px;
+  }
+}
+
+/* Küçük tablet / büyük telefon */
+@media (max-width: 700px) {
+  .health-indicator {
+    padding: 15px;
+  }
+
+  .health-indicator strong {
+    font-size: 19px;
+  }
+}
+
+/* Mobil */
+@media (max-width: 520px) {
+  .health-indicator {
+    padding: 16px;
+    min-height: 78px;
+  }
+
+  .health-indicator small {
+    font-size: 12px;
+  }
+
+  .health-indicator strong {
+    font-size: 20px;
+  }
+}
+
+
+/* Hedef Özeti - responsive grid */
+.goal-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+@media (max-width: 900px) {
+  .goal-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .goal-summary-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+
+/* Finansal İçgörüler - responsive kart tasarımı */
+.financial-insights-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.financial-insight-card {
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.025);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+.financial-insight-card strong {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 15px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.financial-insight-card p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .financial-insights-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .financial-insight-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .financial-insights-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .financial-insight-card {
+    padding: 16px;
+    border-radius: 14px;
+  }
+
+  .financial-insight-card strong {
+    font-size: 15px;
+  }
+
+  .financial-insight-card p {
+    font-size: 13px;
+    line-height: 1.5;
+  }
+}

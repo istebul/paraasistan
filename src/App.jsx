@@ -2209,14 +2209,7 @@ function App() {
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns:
-                        "repeat(4, minmax(0, 1fr))",
-                      gap: "10px",
-                    }}
-                  >
+                  <div className="goal-summary-grid">
                     <div className="health-indicator">
                       <small>Toplam Hedef</small>
                       <strong>{goals.length}</strong>
@@ -2314,14 +2307,7 @@ function App() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(4, minmax(0, 1fr))",
-                  gap: "10px",
-                }}
-              >
+              <div className="subscription-summary-grid">
                 <div className="health-indicator">
                   <small>Toplam Abonelik</small>
                   <strong>{subscriptionCount}</strong>
@@ -3139,31 +3125,16 @@ function App() {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit,minmax(220px,1fr))",
-                  gap: "12px",
-                }}
-              >
+              <div className="financial-insights-grid">
                 {financialInsights.map(
                   (item, index) => (
                     <div
                       key={index}
-                      style={{
-                        padding:
-                          "16px",
-                        borderRadius:
-                          "14px",
-                        background:
-                          "rgba(0,0,0,.035)",
-                      }}
+                      className="financial-insight-card"
                     >
                       <strong>
                         {item.title}
                       </strong>
-
                       <p>
                         {item.text}
                       </p>
