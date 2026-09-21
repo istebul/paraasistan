@@ -1,4 +1,5 @@
 import {
+  lazy,
   useCallback,
   useEffect,
   useMemo,
@@ -14,19 +15,19 @@ import {
 import Toast from "./components/Toast";
 import AppNavigation from "./components/AppNavigation";
 import AppHeader from "./components/AppHeader";
-import AdminPanel from "./components/AdminPanel";
-import ProCodeRedeem from "./components/ProCodeRedeem";
-import PasswordChangeForm from "./components/PasswordChangeForm";
+const AdminPanel = lazy(() => import("./components/AdminPanel"));
+const ProCodeRedeem = lazy(() => import("./components/ProCodeRedeem"));
+const PasswordChangeForm = lazy(() => import("./components/PasswordChangeForm"));
 import TransactionForm from "./components/TransactionForm";
-import TransactionHistory from "./components/TransactionHistory";
-import GoalForm from "./components/GoalForm";
-import GoalList from "./components/GoalList";
-import GoalContributionModal from "./components/GoalContributionModal";
-import SubscriptionForm from "./components/SubscriptionForm";
-import SubscriptionList from "./components/SubscriptionList";
+const TransactionHistory = lazy(() => import("./components/TransactionHistory"));
+const GoalForm = lazy(() => import("./components/GoalForm"));
+const GoalList = lazy(() => import("./components/GoalList"));
+const GoalContributionModal = lazy(() => import("./components/GoalContributionModal"));
+const SubscriptionForm = lazy(() => import("./components/SubscriptionForm"));
+const SubscriptionList = lazy(() => import("./components/SubscriptionList"));
 import SubscriptionIntelligence from "./components/SubscriptionIntelligence";
-import AdvancedReports from "./components/AdvancedReports";
-import EditTransactionModal from "./components/EditTransactionModal";
+const AdvancedReports = lazy(() => import("./components/AdvancedReports"));
+const EditTransactionModal = lazy(() => import("./components/EditTransactionModal"));
 import ConfirmDialog from "./components/ConfirmDialog";
 import DashboardStats from "./components/DashboardStats";
 import {

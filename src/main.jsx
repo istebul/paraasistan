@@ -1,4 +1,4 @@
-import { Component, StrictMode } from 'react'
+import { Component, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
@@ -38,8 +38,17 @@ class AppErrorBoundary extends Component {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AppErrorBoundary>
-      <App />
-      <PwaInstallPrompt />
+      <Suspense
+        fallback={
+          <main className="loading-screen">
+            <h1>ParaAsistan yükleniyor</h1>
+            <p>Sayfa hazırlanıyor...</p>
+          </main>
+        }
+      >
+        <App />
+        <PwaInstallPrompt />
+      </Suspense>
     </AppErrorBoundary>
   </StrictMode>,
 )
