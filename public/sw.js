@@ -1,4 +1,4 @@
-const CACHE_NAME = "paraasistan-v1";
+const CACHE_NAME = "paraasistan-v2";
 
 const APP_SHELL = [
   "/",
